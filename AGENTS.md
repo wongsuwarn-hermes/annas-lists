@@ -10,7 +10,7 @@ Read `HANDOVER.md` before changing product behaviour or user-visible design.
 
 ## Locked product constraints
 
-1. No user accounts. Identity remains a self-chosen group nickname plus trust.
+1. Accounts are optional and organiser-oriented, as approved in `docs/decisions/0001-optional-accounts-cross-device-sync.md`. Capability-link guests must still be able to join and edit without registering; identity remains a self-chosen group nickname plus trust. Do not implement email/password authentication.
 2. The product must remain free to run and must not require user-funded API keys.
 3. The deployed app must stay offline-first and usable from one URL.
 4. Never wipe or silently invalidate localStorage. Migrations are forward-only and safe.

@@ -1,0 +1,9 @@
+{
+  "name": "annas-lists",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "test:hosted": "node scripts/verify-hosted-sync.mjs",
+    "build": "node scripts/embed-cloud.mjs"
+  }
+}

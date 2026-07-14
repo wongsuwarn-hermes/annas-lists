@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anna's Lists — pack together, forget nothing</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9B%BA%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <meta name="theme-color" content="#1E3D32" media="(prefers-color-scheme: light)">
@@ -325,6 +326,30 @@ html.dark .empty, html.dark footer{color:#6E8E7D}
 }
 .theme-btn:hover{color:var(--lantern); transform:rotate(20deg) scale(1.1)}
 .theme-btn:focus-visible{outline:3px solid var(--lantern); outline-offset:2px}
+.account-btn{
+  border:1px solid rgba(255,255,255,.22); border-radius:999px; padding:.38rem .72rem;
+  background:rgba(255,255,255,.08); color:#F5F3EC; font:700 .78rem var(--font-b);
+}
+.account-btn:hover{background:rgba(255,255,255,.16)}
+.sync-pill{
+  display:inline-flex; align-items:center; gap:.3rem; border-radius:999px; padding:.28rem .62rem;
+  background:rgba(95,122,91,.13); color:var(--pine); font:700 .72rem var(--font-m);
+}
+.sync-pill.warn{background:rgba(233,168,32,.22); color:var(--pine-deep)}
+.sync-pill.offline{background:rgba(74,127,165,.16); color:var(--sky)}
+.cloud-actions{display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; margin-top:.75rem}
+.cloud-list{display:grid; gap:.55rem; margin-top:.7rem}
+.cloud-trip{display:flex; align-items:center; gap:.7rem; padding:.7rem .8rem; border:1px solid var(--line); border-radius:14px}
+.cloud-trip strong{color:var(--pine)}
+.read-only #edittrip,.read-only #groups .pencil,.read-only #groups .tile.new,
+.read-only #communal .claim,.read-only #communal .del,.read-only #commadd,
+.read-only #pantry .claim,.read-only #pantry .del,.read-only #pantryadd,
+.read-only #banners .rain button,.read-only #editgroup,.read-only #packrow button,
+.read-only #body .chip,.read-only #body .q-m,.read-only #body .q-p,
+.read-only #body .del,.read-only #body .add-row{pointer-events:none; opacity:.58}
+html.dark .account-btn{color:#EDE9DC}
+html.dark .sync-pill{background:rgba(255,255,255,.1); color:#CFE3D6}
+@media (max-width:640px){.account-btn{padding:.35rem .55rem}.cloud-actions .btn{flex:1}}
 </style>
 </head>
 <body>
@@ -333,6 +358,7 @@ html.dark .empty, html.dark footer{color:#6E8E7D}
     <a href="#" class="wordmark" data-nav="home"><span>⛺</span>Anna's Lists</a>
     <a href="#" class="navlink" data-nav="packs">Pack library</a>
     <button class="theme-btn" id="themebtn" aria-label="Switch between light, dark and automatic appearance">◐</button>
+    <button class="account-btn" id="accountbtn" hidden>Sign in</button>
     <div class="tagline">pack together, forget nothing</div>
   </div>
 </header>
@@ -342,6 +368,368 @@ html.dark .empty, html.dark footer{color:#6E8E7D}
 <footer>Made for people who'd rather be outside. Forecasts by Open-Meteo.</footer>
 <div class="toast" id="toast" role="status"></div>
 <dialog id="dlg"></dialog>
+<!-- ANNAs_CLOUD_MODULES_START -->
+<script id="annas-public-config" type="application/json">{"url":"https://dmnzxxnauzcggrfiwkaw.supabase.co","publishableKey":"sb_publishable_blk8pwyI97zc7VgGEoDyRQ_cDrj0SdA","providers":{"email":true,"google":false}}</script>
+<script>
+/*
+ * Anna's Lists sync primitives.
+ *
+ * A dependency-free UMD module. Browser use: window.AnnasSyncCore; Node use:
+ * require('./sync-core.js'). All functions are pure except capability-token
+ * generation, whose entropy source can be injected for deterministic tests.
+ */
+(function (root, factory) {
+  const api = factory(root);
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.AnnasSyncCore = api;
+}(typeof globalThis !== 'undefined' ? globalThis : this, function (root) {
+  'use strict';
+
+  const SCHEMA = 'annas-cloud-v1';
+  const EMPTY_METADATA = () => ({ schema: SCHEMA, trips: {} });
+  const ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+
+  function isId(value) {
+    return typeof value === 'string' && ID_PATTERN.test(value);
+  }
+
+  function parseUrl(value, baseUrl) {
+    try {
+      return new URL(value, baseUrl || 'https://annas-lists.local/');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Returns null for all old snapshot links (#share= and #sharepack= included).
+  function parseLiveLink(link, baseUrl) {
+    const url = parseUrl(link, baseUrl);
+    if (!url || url.hash.startsWith('#share=') || url.hash.startsWith('#sharepack=')) return null;
+    const shortId = url.searchParams.get('trip');
+    const fragment = new URLSearchParams(url.hash.slice(1));
+    const key = fragment.get('key');
+    return isId(shortId) && typeof key === 'string' && key.length > 0 ? { shortId, key } : null;
+  }
+
+  // `baseUrl` may contain existing query parameters; only `trip` is replaced.
+  function buildLiveLink(options) {
+    const optionsObject = options || {};
+    if (!isId(optionsObject.shortId) || typeof optionsObject.key !== 'string' || !optionsObject.key) {
+      throw new TypeError('A short trip id and capability key are required');
+    }
+    const url = parseUrl(optionsObject.baseUrl || 'https://annas-lists.local/');
+    if (!url) throw new TypeError('baseUrl must be a valid URL');
+    url.searchParams.set('trip', optionsObject.shortId);
+    url.hash = 'key=' + encodeURIComponent(optionsObject.key);
+    return url.toString();
+  }
+
+  function normaliseEntry(entry) {
+    if (!entry || typeof entry !== 'object' || !isId(entry.shortId) ||
+        !Number.isInteger(entry.version) || entry.version < 0) return null;
+    const normalised = { shortId: entry.shortId };
+    if (typeof entry.readKey === 'string' && entry.readKey) normalised.readKey = entry.readKey;
+    if (typeof entry.editKey === 'string' && entry.editKey) normalised.editKey = entry.editKey;
+    if (entry.owner === true) normalised.owner = true;
+    normalised.version = entry.version;
+    if (typeof entry.lastSynced === 'string' && entry.lastSynced) normalised.lastSynced = entry.lastSynced;
+    return normalised;
+  }
+
+  // Invalid data produces a safe empty mapping, so callers never overwrite local state blindly.
+  function parseCloudMetadata(raw) {
+    let value = raw;
+    if (typeof raw === 'string') {
+      try { value = JSON.parse(raw); } catch (_) { return EMPTY_METADATA(); }
+    }
+    if (!value || typeof value !== 'object' || value.schema !== SCHEMA || !value.trips || typeof value.trips !== 'object') {
+      return EMPTY_METADATA();
+    }
+    const trips = {};
+    for (const localTripId of Object.keys(value.trips)) {
+      if (!isId(localTripId)) continue;
+      const entry = normaliseEntry(value.trips[localTripId]);
+      if (entry) trips[localTripId] = entry;
+    }
+    return { schema: SCHEMA, trips };
+  }
+
+  function serializeCloudMetadata(metadata) {
+    return JSON.stringify(parseCloudMetadata(metadata));
+  }
+
+  function defaultRandomBytes(length) {
+    const crypto = root.crypto;
+    if (crypto && typeof crypto.getRandomValues === 'function') {
+      const bytes = new Uint8Array(length);
+      crypto.getRandomValues(bytes);
+      return bytes;
+    }
+    if (typeof require === 'function') return require('node:crypto').randomBytes(length);
+    throw new Error('Secure random bytes are unavailable');
+  }
+
+  function toBase64Url(bytes) {
+    let base64;
+    if (typeof Buffer !== 'undefined') base64 = Buffer.from(bytes).toString('base64');
+    else {
+      let binary = '';
+      for (let index = 0; index < bytes.length; index += 1) binary += String.fromCharCode(bytes[index]);
+      base64 = btoa(binary);
+    }
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  // 32 bytes = 256 bits. Inject `randomBytes` to make a test deterministic.
+  function generateCapabilityToken(randomBytes) {
+    const bytes = (randomBytes || defaultRandomBytes)(32);
+    if (!bytes || typeof bytes.length !== 'number' || bytes.length < 32) {
+      throw new RangeError('Capability tokens require at least 32 bytes of entropy');
+    }
+    return toBase64Url(bytes);
+  }
+
+  function clone(value) {
+    if (Array.isArray(value)) return value.map(clone);
+    if (value && typeof value === 'object') {
+      const result = {};
+      for (const key of Object.keys(value)) result[key] = clone(value[key]);
+      return result;
+    }
+    return value;
+  }
+
+  function createRecoveryCopy(trip, newTripId, now) {
+    if (!trip || typeof trip !== 'object') throw new TypeError('A trip is required');
+    if (!isId(newTripId)) throw new TypeError('A new trip id is required');
+    const date = now instanceof Date ? now : new Date(now || Date.now());
+    if (Number.isNaN(date.getTime())) throw new TypeError('A valid recovery timestamp is required');
+    const copy = clone(trip);
+    const timestamp = date.toISOString().slice(0, 16).replace('T', ' ');
+    copy.id = newTripId;
+    copy.name = String(trip.name || 'Untitled trip') + ' (recovery copy ' + timestamp + ')';
+    return copy;
+  }
+
+  // Deliberately returns conflict rather than resolving a competing update locally.
+  function classifyCloudResponse(response, error) {
+    if (error || !response || response.offline === true || response instanceof Error) return 'offline';
+    if (response.status === 'saved' || response.status === 'created' || response.status === 'ok') return 'saved';
+    if (response.status === 'conflict') return 'conflict';
+    if (response.status === 'unauthorized' || response.status === 'readonly') return 'unauthorized';
+    const status = Number(response.status);
+    if (status >= 200 && status < 300) return 'saved';
+    if (status === 409 || status === 412) return 'conflict';
+    if (status === 401 || status === 403) return 'unauthorized';
+    return 'offline';
+  }
+
+  return {
+    parseLiveLink,
+    buildLiveLink,
+    parseCloudMetadata,
+    serializeCloudMetadata,
+    generateCapabilityToken,
+    createRecoveryCopy,
+    classifyCloudResponse
+  };
+}));
+</script>
+<script>
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  else root.AnnasCloudClient = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  "use strict";
+
+  const CLOUD_KEY = "annas-cloud-v1";
+
+  function firstRow(data) {
+    if (Array.isArray(data)) return data[0] || null;
+    return data || null;
+  }
+
+  function createCloudClient(options) {
+    const supabase = options.supabase;
+    const core = options.core;
+    const storage = options.storage;
+    const now = options.now || (() => new Date());
+    const origin = options.origin || (() => location.origin + location.pathname);
+    const generateCapability = options.generateCapability || core.generateCapabilityToken;
+
+    if (!supabase) throw new Error("supabase client is required");
+    if (!core) throw new Error("sync core is required");
+    if (!storage) throw new Error("storage adapter is required");
+
+    function readMap() {
+      return core.parseCloudMetadata(storage.get(CLOUD_KEY));
+    }
+
+    function writeMap(map) {
+      storage.set(CLOUD_KEY, core.serializeCloudMetadata(map));
+      return map;
+    }
+
+    function metadataFor(localTripId) {
+      return readMap().trips[localTripId] || null;
+    }
+
+    function remember(localTripId, metadata) {
+      const map = readMap();
+      map.trips[localTripId] = metadata;
+      writeMap(map);
+      return metadata;
+    }
+
+    async function rpc(name, args) {
+      const result = await supabase.rpc(name, args);
+      if (result.error) {
+        const error = new Error(result.error.message || `Cloud request failed: ${name}`);
+        error.code = result.error.code;
+        error.details = result.error.details;
+        throw error;
+      }
+      return firstRow(result.data);
+    }
+
+    async function createTrip(localTripId, trip) {
+      const readKey = generateCapability();
+      const editKey = generateCapability();
+      const row = await rpc("create_cloud_trip", {
+        p_data: trip,
+        p_read_token: readKey,
+        p_edit_token: editKey
+      });
+      if (!row || !row.short_id) throw new Error("Cloud trip creation returned no short ID");
+      const metadata = {
+        shortId: row.short_id,
+        readKey,
+        editKey,
+        owner: Boolean(row.is_owner),
+        version: Number(row.version || 1),
+        lastSynced: now().toISOString()
+      };
+      remember(localTripId, metadata);
+      return {
+        metadata,
+        editUrl: core.buildLiveLink({ baseUrl: origin(), shortId: metadata.shortId, key: editKey }),
+        readUrl: core.buildLiveLink({ baseUrl: origin(), shortId: metadata.shortId, key: readKey })
+      };
+    }
+
+    async function readTrip(shortId, key) {
+      const row = await rpc("read_cloud_trip", {
+        p_short_id: shortId,
+        p_token: key || null
+      });
+      if (!row) {
+        const error = new Error("Trip not found or link is no longer valid");
+        error.code = "not_found";
+        throw error;
+      }
+      return {
+        shortId: row.short_id || shortId,
+        trip: row.payload,
+        version: Number(row.version),
+        canEdit: Boolean(row.can_edit),
+        isOwner: Boolean(row.is_owner)
+      };
+    }
+
+    async function writeTrip(localTripId, trip) {
+      const metadata = metadataFor(localTripId);
+      if (!metadata || (!metadata.editKey && !metadata.owner)) {
+        return { status: "readonly", metadata };
+      }
+      try {
+        const row = await rpc("write_cloud_trip", {
+          p_short_id: metadata.shortId,
+          p_edit_token: metadata.editKey || null,
+          p_expected_version: metadata.version,
+          p_data: trip
+        });
+        const status = core.classifyCloudResponse(row);
+        if (status === "saved") {
+          metadata.version = Number(row.version);
+          metadata.lastSynced = now().toISOString();
+          remember(localTripId, metadata);
+        }
+        return { status, metadata, version: row && Number(row.version), remote: row && row.payload };
+      } catch (error) {
+        return { status: core.classifyCloudResponse(null, error), metadata, error };
+      }
+    }
+
+    async function claimTrip(shortId, editKey) {
+      return rpc("claim_cloud_trip", {
+        p_short_id: shortId,
+        p_edit_token: editKey
+      });
+    }
+
+    async function listOwnedTrips() {
+      const result = await supabase.rpc("list_owned_cloud_trips");
+      if (result.error) throw new Error(result.error.message || "Could not list cloud trips");
+      return result.data || [];
+    }
+
+    async function rotateTrip(shortId) {
+      const readKey = generateCapability();
+      const editKey = generateCapability();
+      const row = await rpc("rotate_cloud_trip_tokens", {
+        p_short_id: shortId,
+        p_new_read_token: readKey,
+        p_new_edit_token: editKey
+      });
+      return { row, readKey, editKey };
+    }
+
+    async function signInWithGoogle(redirectTo) {
+      return supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo }
+      });
+    }
+
+    async function signInWithEmail(email, redirectTo) {
+      return supabase.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: redirectTo }
+      });
+    }
+
+    async function signOut() {
+      return supabase.auth.signOut();
+    }
+
+    async function getSession() {
+      const result = await supabase.auth.getSession();
+      if (result.error) throw new Error(result.error.message || "Could not read sign-in session");
+      return result.data.session;
+    }
+
+    return {
+      CLOUD_KEY,
+      metadataFor,
+      remember,
+      createTrip,
+      readTrip,
+      writeTrip,
+      claimTrip,
+      listOwnedTrips,
+      rotateTrip,
+      signInWithGoogle,
+      signInWithEmail,
+      signOut,
+      getSession
+    };
+  }
+
+  return { CLOUD_KEY, createCloudClient };
+});
+</script>
+<!-- ANNAs_CLOUD_MODULES_END -->
 <script>
 "use strict";
 /* ============ storage (localStorage with in-memory fallback) ============ */
@@ -423,7 +811,10 @@ function load(){
   } catch(e){} }
   return { trips: [], packs: {} };
 }
-function save(){ store.set(KEY, JSON.stringify(db)); }
+function save(){
+  store.set(KEY, JSON.stringify(db));
+  if (window.__annasCloudSave) window.__annasCloudSave();
+}
 const uid = () => Math.random().toString(36).slice(2,9);
 const allPacks = () => Object.assign({}, BUILTIN, db.packs);
 function retroTagSources(d){
@@ -481,11 +872,15 @@ function countdownLabel(n){
 const initials = name => name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("");
 
 /* ============ share links ============ */
-function shareTrip(trip){
+function snapshotTripUrl(trip){
   const usedCustom = {};
   trip.groups.flatMap(g=>g.packs).forEach(pid=>{ if (db.packs[pid]) usedCustom[pid]=db.packs[pid]; });
   const payload = btoa(unescape(encodeURIComponent(JSON.stringify({ t:trip, p:usedCustom }))));
-  copy(location.origin + location.pathname + "#share=" + payload, "Trip link copied — send it to the group 📮");
+  return location.origin + location.pathname + "#share=" + payload;
+}
+function shareTrip(trip){
+  if (window.__annasCloudShare && window.__annasCloudShare(trip)) return;
+  copy(snapshotTripUrl(trip), "Trip link copied — send it to the group 📮");
 }
 function sharePack(pid){
   const p = db.packs[pid]; if (!p) return;
@@ -623,15 +1018,16 @@ function readinessCard(trip){
 
 /* ============ router ============ */
 let view = { screen:"home" };
-function go(screen, a, b){ view = { screen, a, b }; render(); window.scrollTo(0,0); }
+function go(screen, a, b){ view = { screen, a, b }; render(); window.scrollTo(0,0); if (window.__annasCloudNavigate) window.__annasCloudNavigate(); }
 document.querySelector("[data-nav=home]").addEventListener("click", e=>{ e.preventDefault(); go("home"); });
 document.querySelector("[data-nav=packs]").addEventListener("click", e=>{ e.preventDefault(); go("packs"); });
 
 function render(){
-  if (view.screen==="home") return renderHome();
-  if (view.screen==="trip") return renderTrip(view.a);
-  if (view.screen==="group") return renderGroup(view.a, view.b);
-  if (view.screen==="packs") return renderPacks();
+  if (view.screen==="home") renderHome();
+  else if (view.screen==="trip") renderTrip(view.a);
+  else if (view.screen==="group") renderGroup(view.a, view.b);
+  else if (view.screen==="packs") renderPacks();
+  if (window.__annasCloudRendered) window.__annasCloudRendered();
 }
 
 /* ============ home ============ */
@@ -711,6 +1107,7 @@ function renderTrip(tripId){
       <button class="btn amber small" id="share">Share trip link</button>
     </div>
     <div class="t-meta" style="color:var(--stone); margin-top:.2rem">${trip.where?esc(trip.where):"No destination yet — tap ✎ to add one for the forecast"}${trip.start?` · ${trip.start}${trip.end?" → "+trip.end:""}`:""}</div>
+    <div class="cloud-actions" id="cloudactions"></div>
     <div id="banners"></div>
     <div id="wx"></div>
     <div id="ready"></div>
@@ -724,7 +1121,7 @@ function renderTrip(tripId){
     <p class="hint">Nobody needs six bottles of olive oil. Claim a staple and bring enough for everyone — decant into small containers where you can. Snacks stay personal; we know how that goes.</p>
     <div class="card" style="padding:.4rem 1rem; margin-top:.6rem"><ul class="items" id="pantry"></ul></div>
     <div class="add-row" id="pantryadd"></div>
-    <p class="hint" style="margin-top:1.2rem">Sharing works by link for now: tap <strong>Share trip link</strong> and send it in the group chat. Until live sync arrives, re-share after big updates.</p>`;
+    <p class="hint" style="margin-top:1.2rem">Tap <strong>Share trip link</strong> to send the trip to the group. Synced trips update through live links; local trips still share as snapshots.</p>`;
   app.querySelector("[data-nav]").addEventListener("click", e=>{e.preventDefault(); go("home");});
   app.querySelector("#share").addEventListener("click", ()=>shareTrip(trip));
   app.querySelector("#edittrip").addEventListener("click", ()=>tripDialog(trip));
@@ -1155,14 +1552,187 @@ document.getElementById("themebtn").addEventListener("click", ()=>{
 });
 applyTheme();
 
+/* ============ optional cloud continuity ============ */
+const cloud = { client:null, available:false, started:false, session:null, owned:[], dirty:{}, revision:{}, pulling:{}, timer:null, pushing:false, suppress:false, status:"Local only" };
+function cloudConfig(){
+  const node = document.getElementById("annas-public-config");
+  try { const value = node && JSON.parse(node.textContent); return value && value.url && value.publishableKey ? value : null; } catch (_) { return null; }
+}
+function cloudTripId(){ return (view.screen==="trip" || view.screen==="group") ? view.a : null; }
+function cloudMeta(id){ return cloud.client && id ? cloud.client.metadataFor(id) : null; }
+function cloudReadOnly(id){ const meta = cloudMeta(id); return Boolean(meta && !meta.editKey && !meta.owner); }
+function cloudMutationTarget(target){
+  if (!(target instanceof Element) || !cloudReadOnly(cloudTripId())) return null;
+  const selector = view.screen==="trip"
+    ? "#edittrip,#groups .pencil,#groups .tile.new,#communal .claim,#communal .del,#commadd,#pantry .claim,#pantry .del,#pantryadd,#banners .rain button"
+    : view.screen==="group"
+      ? "#editgroup,#packrow button,#body .chip,#body .q-m,#body .q-p,#body .del,#body .add-row"
+      : "";
+  return selector ? target.closest(selector) : null;
+}
+function guardCloudMutation(event){
+  if (!cloudMutationTarget(event.target)) return;
+  if (event.type==="keydown" && event.key!=="Enter") return;
+  event.preventDefault(); event.stopImmediatePropagation();
+  toast("This is a view-only trip");
+}
+app.addEventListener("click", guardCloudMutation, true);
+app.addEventListener("change", guardCloudMutation, true);
+app.addEventListener("keydown", guardCloudMutation, true);
+function cloudStatus(text, kind){ cloud.status = text; const pill = document.querySelector("#cloudstatus"); if (pill) { pill.textContent = text; pill.className = "sync-pill" + (kind ? " " + kind : ""); } }
+function saveLocalOnly(){ store.set(KEY, JSON.stringify(db)); }
+function newLocalId(){ let id; do { id = uid(); } while (db.trips.some(t=>t.id===id)); return id; }
+function localForShortId(shortId){
+  if (!cloud.client) return null;
+  return db.trips.find(t=>{ const meta = cloud.client.metadataFor(t.id); return meta && meta.shortId===shortId; }) || null;
+}
+function rememberRemote(localId, remote, key){
+  const old = cloudMeta(localId) || {};
+  const next = { ...old, shortId:remote.shortId, version:remote.version, lastSynced:new Date().toISOString() };
+  if (remote.isOwner) next.owner = true;
+  if (remote.canEdit && key) next.editKey = key;
+  else if (key && !next.editKey) next.readKey = key;
+  cloud.client.remember(localId, next);
+}
+function installRemote(remote, localId, preserveDirty){
+  if (!remote || !remote.trip || typeof remote.trip !== "object") throw new Error("Cloud trip payload was invalid");
+  const current = db.trips.find(t=>t.id===localId);
+  if (preserveDirty && current) db.trips.push(AnnasSyncCore.createRecoveryCopy(current, newLocalId(), new Date()));
+  const incoming = JSON.parse(JSON.stringify(remote.trip)); incoming.id = localId;
+  if (!Array.isArray(incoming.groups)) incoming.groups=[];
+  if (!Array.isArray(incoming.communal)) incoming.communal=[];
+  if (!Array.isArray(incoming.pantry)) incoming.pantry=[];
+  const index = db.trips.findIndex(t=>t.id===localId);
+  if (index >= 0) db.trips[index] = incoming; else db.trips.push(incoming);
+  cloud.dirty[localId] = false;
+  saveLocalOnly();
+  return incoming;
+}
+function scheduleCloudPush(){
+  if (cloud.suppress || !cloud.started || !cloud.client) return;
+  const id = cloudTripId(), trip = id && db.trips.find(t=>t.id===id), meta = cloudMeta(id);
+  if (!trip || !meta || (!meta.editKey && !meta.owner)) return;
+  cloud.dirty[id] = true; cloud.revision[id]=(cloud.revision[id]||0)+1; cloudStatus("Saving…");
+  clearTimeout(cloud.timer); cloud.timer = setTimeout(()=>pushCloudTrip(id), 700);
+}
+async function pushCloudTrip(id){
+  if (cloud.pushing || !cloud.dirty[id] || !cloud.client) return;
+  const trip = db.trips.find(t=>t.id===id); if (!trip) return;
+  const sentRevision=cloud.revision[id]||0;
+  cloud.pushing = true; cloudStatus("Saving…");
+  const result = await cloud.client.writeTrip(id, trip); cloud.pushing = false;
+  if (result.status === "saved") {
+    if ((cloud.revision[id]||0)===sentRevision) { cloud.dirty[id]=false; cloudStatus("Saved"); }
+    else { cloudStatus("Saving…"); clearTimeout(cloud.timer); cloud.timer=setTimeout(()=>pushCloudTrip(id),0); }
+    return;
+  }
+  if (result.status === "conflict" && result.remote) {
+    const remote={ shortId:result.metadata.shortId, version:result.version || result.metadata.version, trip:result.remote, canEdit:true, isOwner:Boolean(result.metadata.owner) };
+    installRemote(remote, id, true); rememberRemote(id, remote, result.metadata.editKey || null);
+    cloudStatus("Recovery copy created", "warn"); render(); toast("Cloud was newer — your edits are in a recovery copy"); return;
+  }
+  if (result.status === "readonly") { cloudStatus("View only", "warn"); return; }
+  cloudStatus("Offline — changes stay on this device", "offline");
+}
+async function pullCloudTrip(id){
+  const meta = cloudMeta(id); if (!meta || !(meta.editKey || meta.readKey || meta.owner) || !cloud.client || cloud.pulling[id]) return;
+  cloud.pulling[id]=true;
+  try {
+    const remote = await cloud.client.readTrip(meta.shortId, meta.editKey || meta.readKey || null);
+    if (remote.version <= meta.version) return;
+    const hadLocalChanges = Boolean(cloud.dirty[id]);
+    installRemote(remote, id, hadLocalChanges);
+    rememberRemote(id, remote, meta.editKey || meta.readKey);
+    cloudStatus(hadLocalChanges ? "Recovery copy created" : "Saved", hadLocalChanges ? "warn" : "");
+    if (hadLocalChanges) toast("Cloud was newer — your edits are in a recovery copy");
+    render();
+  } catch (_) { cloudStatus("Offline — local copy is safe", "offline"); }
+  finally { cloud.pulling[id]=false; }
+}
+async function openLiveTrip(link){
+  const parsed = AnnasSyncCore.parseLiveLink(link); if (!parsed || !cloud.client) return false;
+  cloudStatus("Opening cloud trip…");
+  try {
+    const remote = await cloud.client.readTrip(parsed.shortId, parsed.key);
+    let local = localForShortId(remote.shortId);
+    const localId = local ? local.id : newLocalId();
+    installRemote(remote, localId, false); rememberRemote(localId, remote, parsed.key);
+    history.replaceState(null, "", location.pathname + "?trip=" + encodeURIComponent(parsed.shortId) + location.hash);
+    go("trip", localId); cloudStatus(remote.canEdit ? "Saved" : "View only", remote.canEdit ? "" : "warn");
+    return true;
+  } catch (_) { cloudStatus("Couldn’t open this cloud trip", "offline"); toast("Couldn’t open this trip — check the link and connection"); return false; }
+}
+function accountDialog(){
+  if (!cloud.client) return;
+  const providers=cloudConfig()?.providers || {};
+  const google=providers.google ? `<div class="row"><button class="btn" id="google">Continue with Google</button></div>` : "";
+  const email=providers.email ? `<div class="field" style="margin-top:1rem"><label for="magicemail">Email magic link</label><input id="magicemail" type="email" placeholder="you@example.com"></div><div class="row"><button class="btn ghost small" id="cancel">Cancel</button><div class="spacer"></div><button class="btn small" id="magic">Email me a link</button></div>` : `<div class="row"><button class="btn ghost small" id="cancel">Close</button></div>`;
+  dlg.innerHTML = `<div class="dlg-body"><h2>${cloud.session ? "Organiser account" : "Save your trips across devices"}</h2>${cloud.session ? `<p class="hint">Signed in as ${esc(cloud.session.user.email || "organiser")}. Signing out never removes lists saved on this device.</p><div class="row"><button class="btn ghost small" id="cancel">Close</button><div class="spacer"></div><button class="btn small" id="signout">Sign out</button></div>` : `<p class="hint">Optional: guests can still open and edit an invite link without an account.</p>${google}${email}`}</div>`;
+  dlg.querySelector("#cancel").onclick=()=>dlg.close();
+  if (cloud.session) dlg.querySelector("#signout").onclick=async()=>{ await cloud.client.signOut(); cloud.session=null; updateAccount(); dlg.close(); toast("Signed out — local lists are still here"); };
+  else {
+    const redirect = location.origin + location.pathname + location.search;
+    const googleButton=dlg.querySelector("#google"); if(googleButton) googleButton.onclick=()=>cloud.client.signInWithGoogle(redirect);
+    const magicButton=dlg.querySelector("#magic"); if(magicButton) magicButton.onclick=async()=>{ const emailAddress=dlg.querySelector("#magicemail").value.trim(); if(!emailAddress) return toast("Enter your email first"); const r=await cloud.client.signInWithEmail(emailAddress, redirect); if(r.error) return toast(r.error.message); dlg.close(); toast("Magic link sent — check your email"); };
+  }
+  dlg.showModal();
+}
+function updateAccount(){ const b=document.getElementById("accountbtn"); if (!b) return; b.hidden=!cloud.available; b.textContent=cloud.session ? "Account" : "Sign in"; }
+async function loadOwnedTrips(){
+  if (!cloud.client || !cloud.session) return;
+  try { cloud.owned=await cloud.client.listOwnedTrips(); if(view.screen==="home") render(); } catch (_) { cloud.owned=[]; }
+}
+function cloudShare(trip){
+  const meta=cloudMeta(trip.id); if(!meta) return false;
+  const edit = meta.editKey && AnnasSyncCore.buildLiveLink({baseUrl:location.origin+location.pathname,shortId:meta.shortId,key:meta.editKey});
+  const read = meta.readKey && AnnasSyncCore.buildLiveLink({baseUrl:location.origin+location.pathname,shortId:meta.shortId,key:meta.readKey});
+  const missing=meta.owner && !edit && !read ? `<p class="hint">This device recovered the trip through your organiser account, but it does not have the old invite secrets. Reset the links to share it again.</p>` : "";
+  dlg.innerHTML=`<div class="dlg-body"><h2>Live trip links</h2><p class="hint">Edit links let the group update this shared list. View-only links are safe to send more widely.</p>${missing}<div class="cloud-actions">${edit?`<button class="btn" id="editlink">Copy live edit link</button>`:""}${read?`<button class="btn ghost" id="readlink">Copy view-only link</button>`:""}<button class="btn ghost small" id="snapshot">Copy old snapshot link</button>${meta.owner?`<button class="btn ghost small" id="rotatelinks">Reset live links</button>`:""}</div></div>`;
+  if(edit) dlg.querySelector("#editlink").onclick=()=>copy(edit,"Live edit link copied 📮");
+  if(read) dlg.querySelector("#readlink").onclick=()=>copy(read,"View-only link copied 📮");
+  dlg.querySelector("#snapshot").onclick=()=>copy(snapshotTripUrl(trip),"Snapshot link copied 📮");
+  const rotate=dlg.querySelector("#rotatelinks"); if(rotate) rotate.onclick=async()=>{ if(!confirm("Reset both live links? Old edit and view-only links will stop working.")) return; try { const fresh=await cloud.client.rotateTrip(meta.shortId); meta.readKey=fresh.readKey; meta.editKey=fresh.editKey; cloud.client.remember(trip.id,meta); dlg.close(); cloudShare(trip); toast("New live links are ready — old links no longer work"); } catch (_) { toast("Couldn’t reset links"); } };
+  dlg.showModal(); return true;
+}
+function renderCloudControls(){
+  const id=cloudTripId(), box=document.getElementById("cloudactions"), trip=id && db.trips.find(t=>t.id===id); if(!box || !trip) return;
+  const meta=cloudMeta(id); if(!cloud.available){ box.innerHTML=cloudConfig()?`<span class="sync-pill offline">Cloud sync unavailable — local-only mode</span>`:""; return; }
+  if(!meta){ box.innerHTML=`<button class="btn ghost small" id="synctrip">Sync this trip</button><span class="sync-pill">Local only</span>`; box.querySelector("#synctrip").onclick=async()=>{ cloudStatus("Creating cloud copy…"); try { await cloud.client.createTrip(id, trip); cloudStatus("Saved"); render(); toast("This trip now has live links"); } catch (_) { cloudStatus("Offline — still local only", "offline"); toast("Couldn’t start sync — your local trip is unchanged"); } }; return; }
+  const editable=Boolean(meta.editKey || meta.owner), label=editable ? cloud.status : "View only"; box.innerHTML=`<span id="cloudstatus" class="sync-pill${editable?"":" warn"}">${esc(label)}</span>${meta.editKey && cloud.session && !meta.owner?`<button class="btn ghost small" id="claimtrip">Claim as organiser</button>`:""}`;
+  if(meta.editKey && cloud.session && !meta.owner) box.querySelector("#claimtrip").onclick=async()=>{ try { await cloud.client.claimTrip(meta.shortId,meta.editKey); meta.owner=true; cloud.client.remember(id,meta); await loadOwnedTrips(); render(); toast("Trip is now in your organiser account"); } catch (_) { toast("Couldn’t claim this trip"); } };
+}
+function renderOwnedTrips(){
+  if(view.screen!=="home" || !cloud.session || !cloud.owned.length) return;
+  const holder=el(`<section class="card" style="padding:1rem 1.1rem;margin-top:1rem"><strong>Your cloud trips</strong><div class="cloud-list"></div></section>`), list=holder.querySelector(".cloud-list");
+  cloud.owned.forEach(row=>{ const b=el(`<button class="cloud-trip"><strong>${esc((row.payload||{}).name||"Untitled trip")}</strong><span class="mono">Open</span></button>`); b.onclick=()=>{ const existing=localForShortId(row.short_id), id=existing?existing.id:newLocalId(); installRemote({trip:row.payload},id,false); cloud.client.remember(id,{shortId:row.short_id,version:Number(row.version),owner:true,lastSynced:new Date().toISOString()}); cloud.status="Saved"; go("trip",id); }; list.appendChild(b); }); app.appendChild(holder);
+}
+function cloudRendered(){ const id=cloudTripId(); app.classList.toggle("read-only", Boolean(id && cloudReadOnly(id))); renderCloudControls(); renderOwnedTrips(); }
+async function initialiseCloud(){
+  const config=cloudConfig(); if(!config || !window.AnnasSyncCore || !window.AnnasCloudClient) return;
+  const sdk=document.createElement("script"); sdk.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.5"; sdk.async=true;
+  sdk.onload=async()=>{ try { const supabase=window.supabase.createClient(config.url,config.publishableKey); cloud.client=AnnasCloudClient.createCloudClient({supabase,core:AnnasSyncCore,storage:store,origin:()=>location.origin+location.pathname}); cloud.available=true; cloud.started=true; cloud.session=await cloud.client.getSession(); updateAccount(); await loadOwnedTrips(); const live=AnnasSyncCore.parseLiveLink(location.href); if(live) await openLiveTrip(location.href); else { render(); const id=cloudTripId(); if(id) pullCloudTrip(id); } } catch (_) { cloud.available=false; updateAccount(); render(); } };
+  sdk.onerror=()=>{ cloud.available=false; render(); }; document.head.appendChild(sdk);
+}
+window.__annasCloudSave=scheduleCloudPush;
+window.__annasCloudShare=cloudShare;
+window.__annasCloudRendered=cloudRendered;
+window.__annasCloudNavigate=()=>{ const id=cloudTripId(); if(id) pullCloudTrip(id); };
+document.getElementById("accountbtn").addEventListener("click", accountDialog);
+window.addEventListener("focus", ()=>{ const id=cloudTripId(); if(id) pullCloudTrip(id); });
+window.addEventListener("online", ()=>{ const id=cloudTripId(); if(id) pushCloudTrip(id); });
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible"){ const id=cloudTripId(); if(id) pullCloudTrip(id); } });
+setInterval(()=>{ if(document.visibilityState==="visible" && (view.screen==="trip" || view.screen==="group")){ const id=cloudTripId(); if(id) pullCloudTrip(id); } }, 30000);
+
 /* ============ boot ============ */
 const imported = tryImport();
+const pendingLive = window.AnnasSyncCore && AnnasSyncCore.parseLiveLink(location.href);
 retroTagSources(db);
-if (!db.trips.length) seedDemo();
-save();
+if (!db.trips.length && !pendingLive) seedDemo();
+saveLocalOnly();
 if (imported && imported.trip) go("trip", imported.trip);
 else if (imported && imported.packs) go("packs");
 else render();
+initialiseCloud();
 
 </script>
 </body>

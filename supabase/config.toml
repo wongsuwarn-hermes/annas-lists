@@ -1,0 +1,51 @@
+project_id = "annas-lists"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "https://annaslists.xyz/"
+additional_redirect_urls = [
+  "https://annaslists.xyz/",
+  "https://www.annaslists.xyz/",
+  "http://localhost:3000/",
+  "http://127.0.0.1:3000/",
+  "http://localhost:8765/",
+  "http://127.0.0.1:8765/",
+  "http://127.0.0.1:8777/"
+]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+max_frequency = "1m"
+otp_length = 8
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[storage.vector]
+enabled = false
+max_buckets = 10
+max_indexes = 5
+
+# This file intentionally contains no project URL, publishable key, or service-role secret.
+# Browser configuration belongs in the app's public deployment configuration; service-role
+# credentials must remain outside the repository and browser.

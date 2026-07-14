@@ -1,0 +1,8 @@
+{
+  "url": "https://dmnzxxnauzcggrfiwkaw.supabase.co",
+  "publishableKey": "sb_publishable_blk8pwyI97zc7VgGEoDyRQ_cDrj0SdA",
+  "providers": {
+    "email": true,
+    "google": false
+  }
+}
