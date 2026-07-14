@@ -248,6 +248,27 @@ dialog[open]{animation:fadeUp .3s var(--ease)}
 .empty{padding:2.3rem 1rem; text-align:center; color:var(--stone)}
 .empty .big{font-size:2.6rem; display:block; margin-bottom:.5rem}
 footer{max-width:880px; margin:2rem auto 0; padding:0 1rem 2rem; font-size:.8rem; color:var(--stone); text-align:center}
+
+.hero-actions{display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1rem}
+.demo-note{margin-top:1rem; padding:.8rem 1rem; border-left:4px solid var(--lantern); background:rgba(233,168,32,.11); color:var(--pine-deep); border-radius:14px}
+html.dark .demo-note{background:rgba(233,168,32,.12); color:#F4D896}
+.ready-card{margin-top:1.15rem; padding:1rem 1.1rem}
+.ready-head{display:flex; align-items:center; gap:.65rem; flex-wrap:wrap; margin-bottom:.7rem}
+.ready-head strong{font-family:var(--font-d); color:var(--pine); font-size:1.05rem}
+.ready-status{border-radius:999px; padding:.22rem .62rem; font-family:var(--font-m); font-size:.72rem; font-weight:700; background:rgba(95,122,91,.13); color:var(--pine)}
+.ready-status.warn{background:rgba(233,168,32,.22); color:var(--pine-deep)}
+.ready-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:.6rem}
+.ready-metric{border:1px solid var(--line); border-radius:14px; padding:.7rem .75rem; background:rgba(255,255,255,.5)}
+.ready-metric b{display:block; font-family:var(--font-d); font-size:1.35rem; color:var(--pine); line-height:1}
+.ready-metric span{display:block; margin-top:.25rem; color:var(--stone); font-size:.82rem}
+.ready-list{margin-top:.75rem; padding-left:1.1rem; color:var(--stone); font-size:.9rem}
+.ready-list li{margin:.22rem 0}
+.mine-badge{display:inline-flex; align-items:center; gap:.25rem; border-radius:999px; background:rgba(233,168,32,.2); color:var(--pine-deep); font-weight:800; font-size:.74rem; padding:.22rem .55rem; white-space:nowrap}
+html.dark .mine-badge{color:#F4D896; background:rgba(233,168,32,.14)}
+.mine-pick{border:1.5px dashed var(--moss); background:transparent; color:var(--moss); border-radius:999px; padding:.25rem .55rem; font-weight:700; font-size:.75rem}
+.mine-pick:hover{background:rgba(95,122,91,.09)}
+.next-step{margin-top:.75rem; color:var(--stone); font-size:.88rem}
+@media (max-width:640px){.hero-actions .btn{width:100%; justify-content:center}.ready-grid{grid-template-columns:1fr}.ready-head{align-items:flex-start}.mine-pick{padding:.38rem .65rem}}
 .toast{
   position:fixed; bottom:1.2rem; left:50%; transform:translateX(-50%) translateY(130%);
   background:rgba(20,43,35,.94); color:#F5F3EC; border-radius:999px; padding:.62rem 1.25rem;
@@ -327,7 +348,8 @@ html.dark .empty, html.dark footer{color:#6E8E7D}
 const mem = {};
 const store = {
   get(k){ try { return localStorage.getItem(k); } catch(e){ return mem[k] ?? null; } },
-  set(k,v){ try { localStorage.setItem(k,v); } catch(e){ mem[k]=v; } }
+  set(k,v){ try { localStorage.setItem(k,v); } catch(e){ mem[k]=v; } },
+  remove(k){ try { localStorage.removeItem(k); } catch(e){ delete mem[k]; } }
 };
 
 /* ============ Anna's five states ============ */
@@ -421,7 +443,7 @@ function communalDefaults(){ return COMMUNAL_DEFAULTS.map(n=>({ id:uid(), name:n
 function pantryDefaults(){ return PANTRY_DEFAULTS.map(n=>({ id:uid(), name:n, claimedBy:null })); }
 
 function seedDemo(){
-  const trip = { id:uid(), name:"Camping this weekend", where:"", start:"", end:"", groups:[], communal:communalDefaults(), pantry:pantryDefaults() };
+  const trip = { id:uid(), name:"Camping this weekend", where:"", start:"", end:"", demo:true, groups:[], communal:communalDefaults(), pantry:pantryDefaults() };
   db.trips.push(trip);
   addGroup(trip, "Anna & co", ["anna","kids"]);
   save();
@@ -560,6 +582,45 @@ function confetti(){
 function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 const disc = (g, cls="") => `<span class="disc ${cls}" style="background:${g.color}" aria-hidden="true">${esc(initials(g.name))}</span>`;
 
+const MY_GROUP_KEY = "annas-my-groups-v1";
+function myGroupMap(){ try { return JSON.parse(store.get(MY_GROUP_KEY)||"{}"); } catch(e){ return {}; } }
+function myGroupId(trip){ const id = myGroupMap()[trip.id]; return trip.groups.some(g=>g.id===id) ? id : null; }
+function setMyGroup(trip, groupId){ const m = myGroupMap(); m[trip.id] = groupId; store.set(MY_GROUP_KEY, JSON.stringify(m)); }
+function clearMyGroup(trip){ const m = myGroupMap(); delete m[trip.id]; store.set(MY_GROUP_KEY, JSON.stringify(m)); }
+function tripReadiness(trip){
+  const unclaimedGear = (trip.communal||[]).filter(i=>!i.claimedBy);
+  const unclaimedPantry = (trip.pantry||[]).filter(i=>!i.claimedBy);
+  const buyGroups = trip.groups.map(g=>({g, n:g.items.filter(i=>i.status==="buy").length + (g.shop||[]).filter(i=>i.status!=="packed" && i.status!=="not_needed").length})).filter(x=>x.n);
+  const tomorrowGroups = trip.groups.map(g=>({g, n:g.items.filter(i=>i.status==="tomorrow").length})).filter(x=>x.n);
+  const openGroups = trip.groups.map(g=>({g, p:progress(g)})).filter(x=>x.p.pct<100);
+  return { unclaimedGear, unclaimedPantry, buyGroups, tomorrowGroups, openGroups };
+}
+function readinessCard(trip){
+  const r = tripReadiness(trip);
+  const blockers = r.unclaimedGear.length + r.unclaimedPantry.length + r.buyGroups.reduce((a,x)=>a+x.n,0) + r.tomorrowGroups.reduce((a,x)=>a+x.n,0);
+  const status = !trip.groups.length ? "Add a group to start" : blockers ? "Needs attention" : r.openGroups.length ? "Personal packing left" : "Ready enough";
+  const issues = [];
+  r.unclaimedGear.slice(0,3).forEach(i=>issues.push(`Claim communal gear: ${esc(i.name)}`));
+  r.unclaimedPantry.slice(0,3).forEach(i=>issues.push(`Claim pantry staple: ${esc(i.name)}`));
+  r.buyGroups.slice(0,3).forEach(x=>issues.push(`${esc(x.g.name)}: ${x.n} shopping item${x.n===1?"":"s"}`));
+  r.tomorrowGroups.slice(0,3).forEach(x=>issues.push(`${esc(x.g.name)}: ${x.n} item${x.n===1?"":"s"} for tomorrow`));
+  const hidden = Math.max(0, blockers - issues.length);
+  if (hidden) issues.push(`${hidden} more thing${hidden===1?"":"s"} need attention`);
+  const myId = myGroupId(trip);
+  const mine = trip.groups.find(g=>g.id===myId);
+  return `<section class="card ready-card" aria-label="Trip readiness summary">
+    <div class="ready-head"><strong>Ready to go?</strong><span class="ready-status ${blockers||!trip.groups.length?"warn":""}">${status}</span>${mine?`<span class="mine-badge">★ Your group: ${esc(mine.name)}</span>`:""}</div>
+    <div class="ready-grid">
+      <div class="ready-metric"><b>${r.unclaimedGear.length}</b><span>communal gear unclaimed</span></div>
+      <div class="ready-metric"><b>${r.unclaimedPantry.length}</b><span>pantry staples unclaimed</span></div>
+      <div class="ready-metric"><b>${r.buyGroups.reduce((a,x)=>a+x.n,0)}</b><span>shopping items across groups</span></div>
+      <div class="ready-metric"><b>${r.openGroups.length}</b><span>groups still packing</span></div>
+    </div>
+    ${issues.length?`<ul class="ready-list">${issues.map(i=>`<li>${i}</li>`).join("")}</ul>`:`<p class="next-step">No shared blockers showing. Do one final sweep of each group's personal list before leaving.</p>`}
+    ${mine?`<p class="next-step"><button class="btn small" id="openmine">Open ${esc(mine.name)}'s list</button> <button class="mine-pick" id="changemine">Change my group</button></p>`:`${trip.groups.length?`<p class="next-step">Open your group and tap <strong>This is my group</strong> so this device remembers it.</p>`:""}`}
+  </section>`;
+}
+
 /* ============ router ============ */
 let view = { screen:"home" };
 function go(screen, a, b){ view = { screen, a, b }; render(); window.scrollTo(0,0); }
@@ -575,10 +636,19 @@ function render(){
 
 /* ============ home ============ */
 function renderHome(){
+  const demoOnly = db.trips.length===1 && db.trips[0].demo;
   app.innerHTML = `
     <h1>Your trips</h1>
     <p class="sub">One page per adventure. Every group gets its own list, built from ready-made packs, and everyone can see how packing's going.</p>
+    <div class="hero-actions"><button class="btn" id="starttrip">Start a real trip</button><button class="btn ghost" id="trydemo">Try the camping demo</button></div>
+    ${demoOnly?`<p class="demo-note"><strong>Demo loaded:</strong> this starter trip lets you poke around without setting anything up. Create a real trip when you're ready.</p>`:""}
     <div class="grid" id="trips"></div>`;
+  app.querySelector("#starttrip").addEventListener("click", ()=>tripDialog());
+  app.querySelector("#trydemo").addEventListener("click", ()=>{
+    let demo = db.trips.find(t=>t.demo) || db.trips[0];
+    if (!demo){ demo = seedDemo(); }
+    go("trip", demo.id);
+  });
   const grid = app.querySelector("#trips");
   db.trips.forEach((t,idx)=>{
     const n = daysTo(t.start);
@@ -586,7 +656,7 @@ function renderHome(){
       <div class="row"><span class="t-name">${esc(t.name)}</span><span class="spacer"></span>
         ${n!==null && n>=0 ? `<span class="count-badge ${n===0?"today":""}">${countdownLabel(n)}</span>`:""}
         <button class="pencil" aria-label="Edit ${esc(t.name)}">✎</button></div>
-      <div class="t-meta">${t.where?esc(t.where)+" · ":""}${t.groups.length} group${t.groups.length===1?"":"s"}</div>
+      <div class="t-meta">${t.demo?"Demo · ":""}${t.where?esc(t.where)+" · ":""}${t.groups.length} group${t.groups.length===1?"":"s"}</div>
     </div>`);
     tile.style.animationDelay = (idx*45)+"ms";
     tileHandlers(tile, ()=>go("trip", t.id), ()=>tripDialog(t));
@@ -643,6 +713,7 @@ function renderTrip(tripId){
     <div class="t-meta" style="color:var(--stone); margin-top:.2rem">${trip.where?esc(trip.where):"No destination yet — tap ✎ to add one for the forecast"}${trip.start?` · ${trip.start}${trip.end?" → "+trip.end:""}`:""}</div>
     <div id="banners"></div>
     <div id="wx"></div>
+    <div id="ready"></div>
     <h2>Groups</h2>
     <div class="grid" id="groups"></div>
     <h2>Communal gear — who's bringing what?</h2>
@@ -653,7 +724,7 @@ function renderTrip(tripId){
     <p class="hint">Nobody needs six bottles of olive oil. Claim a staple and bring enough for everyone — decant into small containers where you can. Snacks stay personal; we know how that goes.</p>
     <div class="card" style="padding:.4rem 1rem; margin-top:.6rem"><ul class="items" id="pantry"></ul></div>
     <div class="add-row" id="pantryadd"></div>
-    <p class="hint" style="margin-top:1.2rem">Sharing works by link: tap <strong>Share trip link</strong> and send it in the group chat. Whoever opens it gets the latest state — re-share after big updates.</p>`;
+    <p class="hint" style="margin-top:1.2rem">Sharing works by link for now: tap <strong>Share trip link</strong> and send it in the group chat. Until live sync arrives, re-share after big updates.</p>`;
   app.querySelector("[data-nav]").addEventListener("click", e=>{e.preventDefault(); go("home");});
   app.querySelector("#share").addEventListener("click", ()=>shareTrip(trip));
   app.querySelector("#edittrip").addEventListener("click", ()=>tripDialog(trip));
@@ -700,13 +771,22 @@ function renderTrip(tripId){
     }
   });
 
+  const ready = app.querySelector("#ready");
+  ready.innerHTML = readinessCard(trip);
+  const mineOpen = ready.querySelector("#openmine");
+  if (mineOpen) mineOpen.addEventListener("click", ()=>go("group", trip.id, myGroupId(trip)));
+  const mineChange = ready.querySelector("#changemine");
+  if (mineChange) mineChange.addEventListener("click", ()=>{ clearMyGroup(trip); render(); });
+
   /* groups */
   const grid = app.querySelector("#groups");
   trip.groups.forEach((g,idx)=>{
     const p = progress(g);
     const buys = g.items.filter(i=>i.status==="buy").length;
+    const mine = myGroupId(trip)===g.id;
     const tile = el(`<div class="card tile" role="button" tabindex="0" aria-label="Open ${esc(g.name)}'s list">
       <div class="row">${disc(g)}<span class="t-name">${esc(g.name)}</span><span class="spacer"></span>
+        ${mine?`<span class="mine-badge">★ Your group</span>`:""}
         <button class="pencil" aria-label="Rename ${esc(g.name)}">✎</button></div>
       <div class="progress ${p.pct===100?"done":""}"><span style="width:${p.pct}%"></span></div>
       <div class="t-meta mono">${p.done}/${p.total} packed${p.pct===100?" — ready! 🎉":""}${buys?` · ${buys} to buy`:""}</div>
@@ -777,7 +857,7 @@ function groupDialog(trip){
     if (trip.groups.some(g=>g.name.toLowerCase()===name.toLowerCase())) return toast("That nickname's taken on this trip");
     const packIds = [...dlg.querySelectorAll(".packs input:checked")].map(i=>i.value);
     const g = addGroup(trip, name, packIds);
-    save(); dlg.close(); go("group", trip.id, g.id);
+    setMyGroup(trip, g.id); save(); dlg.close(); go("group", trip.id, g.id);
   });
   dlg.showModal();
 }
@@ -852,6 +932,7 @@ function renderGroup(tripId, groupId){
     <nav class="crumb"><a href="#" data-nav="h">Trips</a><span>›</span><a href="#" data-nav="t">${esc(trip.name)}</a><span>›</span>${esc(g.name)}</nav>
     <div class="row">${disc(g)}
       <div><div class="row" style="gap:.5rem"><h1>${esc(g.name)}</h1>
+        ${myGroupId(trip)===g.id?`<span class="mine-badge">★ Your group</span>`:`<button class="mine-pick" id="makemine">This is my group</button>`}
         <button class="pencil big" id="editgroup" aria-label="Rename ${esc(g.name)}">✎</button></div>
       <div class="mono" style="color:var(--stone)">${p.done}/${p.total} packed ${p.pct===100?"— ready to roll 🎉":""}</div></div>
       <div class="spacer"></div>
@@ -870,6 +951,8 @@ function renderGroup(tripId, groupId){
   app.querySelector("[data-nav=t]").addEventListener("click",e=>{e.preventDefault();go("trip",tripId);});
   app.querySelector("#share").addEventListener("click", ()=>shareTrip(trip));
   app.querySelector("#saveaspack").addEventListener("click", ()=>saveAsPackDialog(g));
+  const makeMine = app.querySelector("#makemine");
+  if (makeMine) makeMine.addEventListener("click", ()=>{ setMyGroup(trip, g.id); save(); render(); toast(`${g.name} remembered as your group`); });
   app.querySelector("#editgroup").addEventListener("click", ()=>renameGroupDialog(trip, g));
   app.querySelectorAll(".tab").forEach(b=>b.addEventListener("click", ()=>{ view.tab=b.dataset.t; render(); }));
 
