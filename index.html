@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anna's Lists — pack together, forget nothing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#1E3D32" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0C1B15" media="(prefers-color-scheme: dark)">
+<style>
+:root{
+  --pine:#1E3D32; --pine-deep:#142B23; --lantern:#E9A820; --lantern-deep:#C4880D;
+  --birch:#F5F3EC; --night:#20261F; --moss:#5F7A5B;
+  --sky:#4A7FA5; --clay:#B4552D; --stone:#8B8778; --line:#DDD8C8;
+  --glass:rgba(255,255,255,.78); --glass-line:rgba(255,255,255,.65);
+  --r:20px;
+  --shadow:0 1px 2px rgba(30,61,50,.05), 0 10px 30px rgba(30,61,50,.10);
+  --shadow-hover:0 2px 4px rgba(30,61,50,.06), 0 18px 44px rgba(30,61,50,.16);
+  --spring:cubic-bezier(.34,1.56,.64,1); --ease:cubic-bezier(.22,1,.36,1);
+  --font-d:"Bricolage Grotesque", system-ui, sans-serif;
+  --font-b:"Atkinson Hyperlegible", system-ui, sans-serif;
+  --font-m:"IBM Plex Mono", ui-monospace, monospace;
+}
+*{box-sizing:border-box; margin:0}
+body{font-family:var(--font-b); color:var(--night); background:var(--birch); min-height:100vh; overflow-x:hidden}
+body::before{
+  content:""; position:fixed; inset:-25%; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(640px 460px at 18% 8%, rgba(233,168,32,.20), transparent 62%),
+    radial-gradient(720px 520px at 86% 16%, rgba(74,127,165,.17), transparent 62%),
+    radial-gradient(680px 560px at 46% 96%, rgba(95,122,91,.20), transparent 62%);
+  filter:blur(42px); animation:drift 28s ease-in-out infinite alternate;
+}
+body::after{
+  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background-image:radial-gradient(rgba(30,61,50,.05) 1px, transparent 1.4px);
+  background-size:24px 24px;
+  -webkit-mask-image:linear-gradient(180deg, transparent, #000 22%);
+          mask-image:linear-gradient(180deg, transparent, #000 22%);
+}
+@keyframes drift{
+  0%{transform:translate3d(0,0,0) rotate(0deg) scale(1)}
+  100%{transform:translate3d(3%, -2%, 0) rotate(4deg) scale(1.06)}
+}
+@keyframes fadeUp{from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:none}}
+button{font-family:inherit; cursor:pointer}
+input,select,textarea{font-family:inherit; font-size:1rem}
+a{color:var(--pine)}
+
+header{
+  position:sticky; top:0; z-index:40; padding:.8rem 1rem;
+  background:rgba(20,43,35,.84); backdrop-filter:blur(14px) saturate(1.2);
+  -webkit-backdrop-filter:blur(14px) saturate(1.2);
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.header-inner{max-width:880px; margin:0 auto; display:flex; align-items:center; gap:1.1rem}
+.wordmark{font-family:var(--font-d); font-weight:800; font-size:1.35rem; color:#F5F3EC; text-decoration:none; display:flex; align-items:center; gap:.5rem; letter-spacing:-.01em}
+.wordmark span{filter:drop-shadow(0 0 10px rgba(233,168,32,.5))}
+.navlink{color:#BFD3C6; text-decoration:none; font-weight:700; font-size:.9rem; transition:color .15s}
+.navlink:hover{color:var(--lantern)}
+.tagline{font-size:.78rem; color:#9DB8A6; margin-left:auto; font-style:italic}
+@media (max-width:560px){ .tagline{display:none} }
+
+main{max-width:880px; margin:0 auto; padding:1.4rem 1rem 5rem}
+.crumb{font-size:.85rem; margin-bottom:1rem; color:var(--stone)}
+.crumb a{text-decoration:none; font-weight:700}
+.crumb span{margin:0 .35rem}
+h1{font-family:var(--font-d); font-weight:800; font-size:clamp(1.7rem,4.6vw,2.3rem); color:var(--pine); line-height:1.08; letter-spacing:-.015em}
+h2{font-family:var(--font-d); font-weight:700; font-size:1.18rem; color:var(--pine); margin:2rem 0 .6rem; letter-spacing:-.01em}
+.sub{color:var(--stone); margin-top:.4rem; max-width:58ch}
+.card{
+  background:var(--glass); border:1px solid var(--glass-line); border-radius:var(--r);
+  box-shadow:var(--shadow); backdrop-filter:blur(14px) saturate(1.05);
+  -webkit-backdrop-filter:blur(14px) saturate(1.05);
+}
+.btn{
+  border:0; border-radius:999px; padding:.62rem 1.2rem; font-weight:700; font-size:.95rem;
+  background:linear-gradient(180deg,#295241,#16362B); color:#F5F3EC;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 4px 14px rgba(20,43,35,.28);
+  transition:transform .16s var(--spring), box-shadow .16s;
+}
+.btn:hover{transform:translateY(-1.5px); box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 8px 20px rgba(20,43,35,.34)}
+.btn:active{transform:translateY(0) scale(.97)}
+.btn.amber{background:linear-gradient(180deg,#F5B93B,#DB9A12); color:var(--pine-deep); box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 4px 14px rgba(196,136,13,.35)}
+.btn.ghost{background:transparent; color:var(--pine); border:2px solid var(--pine); box-shadow:none}
+.btn.small{padding:.38rem .85rem; font-size:.83rem}
+.btn:focus-visible,.chip:focus-visible,.pencil:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--lantern); outline-offset:2px}
+.row{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap}
+.spacer{flex:1}
+.mono{font-family:var(--font-m); font-size:.8rem}
+
+.pencil{
+  border:0; width:30px; height:30px; border-radius:50%; flex:none;
+  background:rgba(30,61,50,.07); color:var(--pine); font-size:.92rem; line-height:1;
+  opacity:.55; transition:all .18s var(--spring);
+}
+.pencil:hover{opacity:1; background:rgba(30,61,50,.13); transform:rotate(-10deg) scale(1.08)}
+.pencil.big{width:36px; height:36px; font-size:1.05rem}
+
+.grid{display:grid; gap:.95rem; grid-template-columns:repeat(auto-fill,minmax(248px,1fr)); margin-top:1rem}
+.tile{
+  padding:1.05rem 1.15rem; display:flex; flex-direction:column; gap:.55rem; text-align:left;
+  border-radius:var(--r); transition:transform .22s var(--ease), box-shadow .22s;
+  animation:fadeUp .5s var(--ease) both;
+}
+div.tile[role=button]{cursor:pointer}
+button.tile{border:1px solid var(--glass-line)}
+.tile:hover{transform:translateY(-3px); box-shadow:var(--shadow-hover)}
+.tile .t-name{font-family:var(--font-d); font-weight:700; font-size:1.1rem; color:var(--pine); letter-spacing:-.01em}
+.tile .t-meta{font-size:.83rem; color:var(--stone)}
+.tile.new{
+  border:2px dashed var(--moss); background:transparent; backdrop-filter:none;
+  align-items:center; justify-content:center; color:var(--moss); font-weight:700; min-height:100px; box-shadow:none;
+}
+.tile.new:hover{background:rgba(95,122,91,.09); transform:translateY(-3px)}
+.disc{width:38px; height:38px; border-radius:50%; color:#fff; font-family:var(--font-d); font-weight:800; display:inline-flex; align-items:center; justify-content:center; font-size:1rem; flex:none; text-transform:uppercase; box-shadow:inset 0 -2px 4px rgba(0,0,0,.18), 0 2px 6px rgba(30,61,50,.2)}
+.progress{height:10px; background:rgba(30,61,50,.10); border-radius:99px; overflow:hidden; margin-top:.2rem}
+.progress > span{
+  display:block; height:100%; border-radius:99px; position:relative; overflow:hidden;
+  background:linear-gradient(90deg,var(--moss),var(--pine)); transition:width .5s var(--ease);
+}
+.progress > span::after{
+  content:""; position:absolute; inset:0;
+  background:linear-gradient(110deg, transparent 30%, rgba(255,255,255,.35) 50%, transparent 70%);
+  transform:translateX(-100%); animation:shine 2.8s ease-in-out infinite;
+}
+@keyframes shine{ 55%,100%{transform:translateX(100%)} }
+.progress.done > span{background:linear-gradient(90deg,var(--lantern),var(--lantern-deep))}
+.count-badge{font-family:var(--font-m); font-size:.72rem; background:var(--pine); color:#F5F3EC; border-radius:999px; padding:.22rem .65rem; white-space:nowrap; box-shadow:0 2px 8px rgba(20,43,35,.25)}
+.count-badge.today{background:linear-gradient(180deg,#F5B93B,#DB9A12); color:var(--pine-deep)}
+
+.banner{border-radius:var(--r); padding:.85rem 1.05rem; margin-top:1rem; font-size:.92rem; border:1.5px solid; animation:fadeUp .5s var(--ease) both; backdrop-filter:blur(10px)}
+.banner.tmrw{background:rgba(255,246,224,.85); border-color:var(--lantern-deep); color:var(--pine-deep)}
+.banner.rain{background:rgba(237,244,249,.85); border-color:var(--sky); color:#2C5876}
+.banner strong{font-family:var(--font-d)}
+.banner .btn{margin-top:.45rem}
+
+.wx{display:flex; gap:.55rem; overflow-x:auto; margin-top:1rem; padding-bottom:.35rem}
+.wx-day{background:var(--glass); border:1px solid var(--glass-line); border-radius:16px; padding:.55rem .75rem; text-align:center; min-width:88px; flex:none; box-shadow:var(--shadow); animation:fadeUp .5s var(--ease) both; backdrop-filter:blur(10px)}
+.wx-day .d{font-size:.72rem; font-weight:700; color:var(--stone); text-transform:uppercase; letter-spacing:.05em}
+.wx-day .i{font-size:1.55rem; line-height:1.45}
+.wx-day .t{font-size:.84rem; font-weight:700; color:var(--pine)}
+.wx-day .p{font-size:.72rem; color:var(--sky)}
+.wx-note{font-size:.78rem; color:var(--stone); font-style:italic; margin-top:.35rem}
+
+.tabs{display:flex; gap:.4rem; margin:1.1rem 0 .4rem; flex-wrap:wrap}
+.tab{border:1.5px solid var(--pine); background:transparent; color:var(--pine); border-radius:999px; padding:.42rem 1rem; font-weight:700; font-size:.88rem; transition:all .18s var(--spring)}
+.tab:hover{transform:translateY(-1px)}
+.tab[aria-selected="true"]{background:linear-gradient(180deg,#295241,#16362B); color:#F5F3EC; box-shadow:0 4px 12px rgba(20,43,35,.28)}
+.cat{margin-top:1.15rem; animation:fadeUp .45s var(--ease) both}
+.cat-head{display:flex; align-items:baseline; gap:.5rem; border-bottom:2px solid var(--pine); padding-bottom:.25rem; margin-bottom:.35rem}
+.cat-head h3{font-family:var(--font-d); font-size:1rem; color:var(--pine); text-transform:uppercase; letter-spacing:.06em}
+.cat-head .mono{color:var(--stone)}
+ul.items{list-style:none; padding:0}
+li.item{display:flex; align-items:center; gap:.7rem; padding:.52rem .35rem; border-bottom:1px dashed var(--line)}
+li.item .name{flex:1}
+li.item.s-not_needed .name, li.item.s-packed .name{color:var(--stone)}
+li.item.s-not_needed .name{text-decoration:line-through}
+.del{border:0; background:none; color:var(--stone); font-size:1rem; padding:.2rem .45rem; border-radius:8px; opacity:.5; transition:all .15s}
+.del:hover{opacity:1; color:var(--clay); background:rgba(180,85,45,.09)}
+.qty{display:inline-flex; align-items:center; gap:.1rem; flex:none; opacity:.45; transition:opacity .15s}
+.qty:hover, .qty.multi{opacity:1}
+.qty button{border:0; width:22px; height:22px; border-radius:50%; background:rgba(30,61,50,.08); color:var(--pine); font-weight:800; line-height:1; font-size:.85rem; transition:transform .15s var(--spring), background .15s}
+.qty button:hover{background:rgba(30,61,50,.16); transform:scale(1.12)}
+.qty b{min-width:30px; text-align:center; font-family:var(--font-m); font-size:.78rem; color:var(--pine)}
+
+.chip{
+  border:2px solid var(--stone); background:rgba(255,255,255,.85); border-radius:8px 999px 999px 8px;
+  padding:.28rem .75rem .28rem .55rem; font-weight:700; font-size:.8rem; min-width:106px;
+  display:inline-flex; align-items:center; gap:.4rem; color:var(--stone); text-align:left;
+  transition:all .22s var(--spring);
+}
+.chip::before{content:""; width:7px; height:7px; border-radius:50%; background:currentColor; opacity:.5; flex:none}
+.chip:hover{transform:rotate(-2deg) scale(1.04)}
+.chip:active{transform:scale(.94)}
+.chip.s-packed{border-color:var(--pine); background:linear-gradient(180deg,#295241,#16362B); color:#F5F3EC; box-shadow:0 3px 10px rgba(20,43,35,.3)}
+.chip.s-buy{border-color:var(--lantern-deep); background:linear-gradient(180deg,#F5B93B,#DB9A12); color:var(--pine-deep)}
+.chip.s-tomorrow{border-color:var(--sky); color:var(--sky); background:rgba(237,244,249,.9)}
+.chip.s-not_needed{border-color:var(--line); color:var(--stone); background:rgba(245,243,236,.7)}
+.hint{font-size:.8rem; color:var(--stone); margin:.4rem 0 0; font-style:italic}
+
+.packrow{display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.8rem}
+.pchip{
+  display:inline-flex; align-items:center; gap:.35rem; font-size:.78rem; font-weight:700;
+  color:var(--pine); background:rgba(30,61,50,.07); border:1px solid var(--line);
+  border-radius:999px; padding:.28rem .45rem .28rem .75rem;
+}
+.pchip button{border:0; background:none; color:var(--stone); font-size:.75rem; line-height:1; padding:.15rem .3rem; border-radius:50%; cursor:pointer; transition:color .15s}
+.pchip button:hover{color:var(--clay)}
+.pchip.addp{background:transparent; border:1.5px dashed var(--moss); color:var(--moss); padding:.28rem .75rem; cursor:pointer; transition:background .15s}
+.pchip.addp:hover{background:rgba(95,122,91,.09)}
+html.dark .pchip{background:rgba(255,255,255,.07)}
+
+@media (pointer:coarse){
+  .chip{padding:.5rem .8rem .5rem .6rem}
+  .del{padding:.5rem .55rem}
+  .qty button{width:28px; height:28px}
+  li.item{padding:.6rem .35rem}
+  .pencil{width:36px; height:36px}
+  .pchip button{padding:.35rem .45rem}
+}
+
+/* ---------- mobile de-clutter: rows show chip + name; tap the name for stepper/delete ---------- */
+@media (max-width:640px){
+  .crumb{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .packrow{flex-wrap:nowrap; overflow-x:auto; padding-bottom:.2rem}
+  .pchip{white-space:nowrap; flex:none}
+  li.item .del{display:none}
+  li.item .qty button{display:none}
+  li.item .qty{opacity:1}
+  li.item .qty:not(.multi) b{display:none}
+  li.item.open .del{display:block}
+  li.item.open .qty button{display:inline-flex}
+  li.item.open .qty:not(.multi) b{display:inline}
+  li.item.open{background:rgba(30,61,50,.045); border-radius:10px}
+  html.dark li.item.open{background:rgba(255,255,255,.05)}
+}
+
+.claim{border:1.5px solid var(--line); border-radius:999px; padding:.32rem .7rem; background:rgba(255,255,255,.85); font-size:.85rem; max-width:170px}
+.claimed-by{display:inline-flex; align-items:center; gap:.4rem; font-weight:700; font-size:.85rem}
+.claimed-by .disc{width:26px; height:26px; font-size:.75rem}
+
+.add-row{display:flex; gap:.5rem; margin-top:1rem}
+.add-row input, .add-row select{flex:1; border:1.5px solid var(--line); border-radius:12px; padding:.58rem .85rem; background:rgba(255,255,255,.85); min-width:0}
+dialog{
+  border:0; border-radius:24px; padding:0; max-width:470px; width:calc(100% - 2rem);
+  box-shadow:0 24px 70px rgba(20,43,35,.4); background:rgba(255,255,255,.92);
+  backdrop-filter:blur(18px);
+}
+dialog::backdrop{background:rgba(20,43,35,.5); backdrop-filter:blur(3px)}
+dialog[open]{animation:fadeUp .3s var(--ease)}
+.dlg-body{padding:1.35rem 1.35rem 1.5rem; max-height:82vh; overflow:auto}
+.dlg-body h2{margin:0 0 .9rem}
+.field{margin-bottom:.95rem}
+.field label{display:block; font-weight:700; font-size:.85rem; margin-bottom:.3rem; color:var(--pine)}
+.field input, .field textarea{width:100%; border:1.5px solid var(--line); border-radius:12px; padding:.58rem .85rem; background:#fff}
+.field textarea{min-height:180px; font-family:var(--font-m); font-size:.82rem; line-height:1.6}
+.two{display:grid; grid-template-columns:1fr 1fr; gap:.6rem}
+.packs{display:flex; flex-direction:column; gap:.45rem}
+.pack{display:flex; align-items:center; gap:.6rem; border:1.5px solid var(--line); border-radius:14px; padding:.58rem .75rem; background:#fff; cursor:pointer; transition:border-color .15s}
+.pack:hover{border-color:var(--moss)}
+.pack input{accent-color:var(--pine); width:18px; height:18px}
+.pack .p-name{font-weight:700; font-size:.92rem}
+.pack .p-count{font-size:.78rem; color:var(--stone)}
+.pack.special{border-color:var(--lantern-deep); background:linear-gradient(100deg,#FFF8E7,#FFFDF6)}
+.pack.special .p-name::after{content:" ⭐"; font-size:.85em}
+.empty{padding:2.3rem 1rem; text-align:center; color:var(--stone)}
+.empty .big{font-size:2.6rem; display:block; margin-bottom:.5rem}
+footer{max-width:880px; margin:2rem auto 0; padding:0 1rem 2rem; font-size:.8rem; color:var(--stone); text-align:center}
+.toast{
+  position:fixed; bottom:1.2rem; left:50%; transform:translateX(-50%) translateY(130%);
+  background:rgba(20,43,35,.94); color:#F5F3EC; border-radius:999px; padding:.62rem 1.25rem;
+  font-weight:700; font-size:.9rem; transition:transform .3s var(--spring); z-index:60;
+  box-shadow:0 10px 30px rgba(20,43,35,.4); backdrop-filter:blur(8px);
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.confetti{position:fixed; width:10px; height:10px; border-radius:3px; z-index:70; pointer-events:none; top:0; left:0}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition:none !important; animation:none !important}
+}
+
+/* ---------- Night camp (dark theme) ---------- */
+html.dark{
+  --birch:#0C1B15; --night:#EDE9DC; --stone:#7FA391; --line:#274238;
+  --glass:rgba(16,36,28,.74); --glass-line:rgba(255,255,255,.09);
+  --pine:#BFDCC8; --moss:#8FAF8A;
+  --shadow:0 1px 2px rgba(0,0,0,.35), 0 10px 30px rgba(0,0,0,.4);
+  --shadow-hover:0 2px 4px rgba(0,0,0,.35), 0 18px 44px rgba(0,0,0,.55);
+}
+html.dark body::before{
+  background:
+    radial-gradient(640px 460px at 18% 8%, rgba(240,184,64,.14), transparent 62%),
+    radial-gradient(720px 520px at 86% 16%, rgba(95,158,199,.12), transparent 62%),
+    radial-gradient(680px 560px at 46% 96%, rgba(95,142,101,.15), transparent 62%);
+}
+html.dark body::after{background-image:radial-gradient(rgba(255,255,255,.05) 1px, transparent 1.4px)}
+html.dark .pencil{background:rgba(255,255,255,.08); color:#CFE3D6}
+html.dark .pencil:hover{background:rgba(255,255,255,.16)}
+html.dark .qty button{background:rgba(255,255,255,.09); color:#CFE3D6}
+html.dark .qty button:hover{background:rgba(255,255,255,.17)}
+html.dark .progress{background:rgba(255,255,255,.10)}
+html.dark .progress > span{background:linear-gradient(90deg,#C4880D,#F0B840)}
+html.dark .progress.done > span{background:linear-gradient(90deg,#F0B840,#FFD97A)}
+html.dark .count-badge{background:rgba(255,255,255,.12); color:#EDE9DC}
+html.dark .count-badge.today{background:linear-gradient(180deg,#F5B93B,#DB9A12); color:#142B23}
+html.dark .chip{background:rgba(14,31,25,.85)}
+html.dark .chip.s-packed{border-color:#8FAF8A}
+html.dark .chip.s-tomorrow{background:rgba(74,127,165,.2)}
+html.dark .chip.s-not_needed{background:rgba(255,255,255,.04)}
+html.dark .add-row input, html.dark .add-row select, html.dark .claim{background:rgba(14,31,25,.85); color:var(--night)}
+html.dark dialog{background:rgba(15,33,26,.97); color:var(--night)}
+html.dark .field input, html.dark .field textarea{background:#0F2119; color:var(--night); border-color:var(--line)}
+html.dark .pack{background:#0F2119; border-color:var(--line)}
+html.dark .pack.special{background:linear-gradient(100deg,#2A2410,#1B2318); border-color:#8A6A1E}
+html.dark .banner.tmrw{background:rgba(64,52,16,.55); border-color:#C4880D; color:#F4D896}
+html.dark .banner.rain{background:rgba(23,48,66,.55); border-color:#4A7FA5; color:#BAD6EA}
+html.dark .tile.new{border-color:#41604A}
+html.dark .empty, html.dark footer{color:#6E8E7D}
+.theme-btn{
+  border:0; width:32px; height:32px; border-radius:50%; flex:none;
+  background:rgba(255,255,255,.1); color:#BFD3C6; font-size:1rem; line-height:1;
+  transition:all .18s var(--spring);
+}
+.theme-btn:hover{color:var(--lantern); transform:rotate(20deg) scale(1.1)}
+.theme-btn:focus-visible{outline:3px solid var(--lantern); outline-offset:2px}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <a href="#" class="wordmark" data-nav="home"><span>⛺</span>Anna's Lists</a>
+    <a href="#" class="navlink" data-nav="packs">Pack library</a>
+    <button class="theme-btn" id="themebtn" aria-label="Switch between light, dark and automatic appearance">◐</button>
+    <div class="tagline">pack together, forget nothing</div>
+  </div>
+</header>
+
+<main id="app"></main>
+
+<footer>Made for people who'd rather be outside. Forecasts by Open-Meteo.</footer>
+<div class="toast" id="toast" role="status"></div>
+<dialog id="dlg"></dialog>
+<script>
+"use strict";
+/* ============ storage (localStorage with in-memory fallback) ============ */
+const mem = {};
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return mem[k] ?? null; } },
+  set(k,v){ try { localStorage.setItem(k,v); } catch(e){ mem[k]=v; } }
+};
+
+/* ============ Anna's five states ============ */
+const STATES = ["to_pack","packed","buy","tomorrow","not_needed"];
+const STATE_LABEL = { to_pack:"To pack", packed:"Packed", buy:"Buy", tomorrow:"Tomorrow", not_needed:"Not needed" };
+
+/* ============ built-in packs ============ */
+const BUILTIN = {
+  anna: { name:"Anna's Camping Essentials", creator:"Anna", special:true, items:[
+    ["Shelter & camp","Tent"],["Shelter & camp","Camping mallet & pegs"],["Shelter & camp","Airbeds & pump"],
+    ["Shelter & camp","Sleeping bags (one per person)"],["Shelter & camp","Pillows"],["Shelter & camp","Duvet & sheets"],
+    ["Shelter & camp","Camping chairs"],["Shelter & camp","Cosy blanket"],["Shelter & camp","Rope / string"],
+    ["Shelter & camp","Lantern"],["Shelter & camp","Torch"],["Shelter & camp","Portable battery"],
+    ["Shelter & camp","Electrical chargers"],["Shelter & camp","Lighter / matches"],["Shelter & camp","Ice box + ice packs"],
+    ["Shelter & camp","Water bottles"],["Shelter & camp","First aid kit"],["Shelter & camp","Games"],
+    ["Shelter & camp","Ear plugs & eye masks"],["Shelter & camp","Dustpan and brush"],["Shelter & camp","Quick-dry towels"],
+    ["Shelter & camp","Travel wash"],["Shelter & camp","Books / Kindles"],
+    ["Kitchen","Stove / pocket rocket"],["Kitchen","Camping gas"],["Kitchen","Cooking pots"],["Kitchen","Crockery & mugs"],
+    ["Kitchen","Cutlery"],["Kitchen","Sharp knife & chopping board"],["Kitchen","Wooden spoon / spatula"],
+    ["Kitchen","Foil"],["Kitchen","Tupperware & food clips"],["Kitchen","Paper towels"],["Kitchen","Bin bags"],
+    ["Kitchen","Washing-up bowl, liquid & brush"],["Kitchen","Scourer & tea towel"],["Kitchen","Tea bags & coffee"],
+    ["Clothing","Everyday clothes"],["Clothing","Socks & underwear"],["Clothing","Warm sleeping gear"],
+    ["Clothing","Warm evening layers"],["Clothing","Coats"],["Clothing","Walking shoes"],["Clothing","Campsite shoes"],
+    ["Clothing","Swimwear"],
+    ["Toiletries","Toothbrushes & toothpaste"],["Toiletries","Shampoo, conditioner & soap"],["Toiletries","Deodorant"],
+    ["Toiletries","Sunscreen"],["Toiletries","Moisturiser & lip balm"],["Toiletries","Hairbrush & ties"],
+    ["Toiletries","Glasses / contact lenses"],["Toiletries","Toilet paper"],["Toiletries","Hand sanitiser"]
+  ]},
+  kids: { name:"Little campers (kids)", creator:"Anna", items:[
+    ["Kids","Nappies & wipes"],["Kids","Swim nappies"],["Kids","Travel cot / snooze shade"],["Kids","White noise machine"],
+    ["Kids","Fleece pyjamas & fleece socks"],["Kids","Sun hats"],["Kids","Wellies & puddle suit"],
+    ["Kids","Carrier / buggy"],["Kids","High chair"],["Kids","Kids' cups, bowls & cutlery"],["Kids","Bibs"],
+    ["Kids","Milk / formula & bottles"],["Kids","Baby food & snacks"],["Kids","Favourite teddy & toys"],
+    ["Kids","Books & audio player"],["Kids","Bike / scooter + helmet"],["Kids","Kids' medicine (e.g. Calpol)"]
+  ]},
+  dog: { name:"Dog pack", creator:"Anna's Lists", items:[
+    ["Dog","Dog food + bowls"],["Dog","Lead & long line"],["Dog","Tie-out stake"],["Dog","Poo bags"],
+    ["Dog","Dog bed / blanket"],["Dog","Towel for muddy paws"],["Dog","Treats & toys"],["Dog","Tick remover"]
+  ]},
+  rain: { name:"Wet weather", creator:"Anna's Lists", items:[
+    ["Wet weather","Waterproof jackets"],["Wet weather","Waterproof trousers"],["Wet weather","Tarp + guy lines"],
+    ["Wet weather","Spare dry clothes bag"],["Wet weather","Groundsheet"],["Wet weather","Umbrella"],
+    ["Wet weather","Indoor games / cards"]
+  ]},
+  fire: { name:"Campfire cooking", creator:"Anna's Lists", items:[
+    ["Campfire","BBQ / firewood & kindling"],["Campfire","Firelighters"],["Campfire","Skewers (marshmallows!)"],
+    ["Campfire","Tongs & grill gloves"],["Campfire","Marshmallows & chocolate"],["Campfire","Bucket of water (safety)"]
+  ]},
+  swim: { name:"Beach & swim", creator:"Anna's Lists", items:[
+    ["Swim","Swimwear & towels"],["Swim","Goggles"],["Swim","Inflatables & pump"],["Swim","Beach shoes"],
+    ["Swim","Windbreak"],["Swim","Bucket & spade"]
+  ]}
+};
+const CHARGE_DEFAULTS = ["Phones","Kindles","Torch","Lantern","Battery pack","Speaker","Head torches"];
+const COMMUNAL_DEFAULTS = ["BBQ / campfire kit","Camping mallet","First aid kit","Big ice box","Camping gas","Speaker","Games box","Folding table"];
+const PANTRY_DEFAULTS = ["Olive oil","Salt & pepper","Spice kit","Coffee","Tea bags","Sugar","Ketchup & condiments","Squash / cordial","Washing-up liquid","Kitchen roll"];
+const COLORS = ["#B4552D","#4A7FA5","#5F7A5B","#8E5AA6","#C4880D","#3E7C7B","#A3495F","#556B2F","#7A5C3E","#2F5D8A"];
+
+/* ============ state ============ */
+const KEY = "annas-lists-v2";
+let db = load();
+function load(){
+  const raw = store.get(KEY);
+  if (raw){ try { const d = JSON.parse(raw); d.packs = d.packs||{}; return d; } catch(e){} }
+  /* migrate v1 (animal totems) if present */
+  const v1 = store.get("annas-lists-v1");
+  if (v1){ try {
+    const old = JSON.parse(v1);
+    old.trips.forEach(t=>{ t.communal = communalDefaults(); t.groups.forEach((g,i)=>{ delete g.animal; g.color = COLORS[i%COLORS.length]; }); });
+    return { trips: old.trips, packs: {} };
+  } catch(e){} }
+  return { trips: [], packs: {} };
+}
+function save(){ store.set(KEY, JSON.stringify(db)); }
+const uid = () => Math.random().toString(36).slice(2,9);
+const allPacks = () => Object.assign({}, BUILTIN, db.packs);
+function retroTagSources(d){
+  const packs = Object.assign({}, BUILTIN, d.packs||{});
+  (d.trips||[]).forEach(t=>(t.groups||[]).forEach(g=>{
+    (g.items||[]).forEach(it=>{
+      if (it.src) return;
+      for (const pid of (g.packs||[])){
+        const p = packs[pid];
+        if (p && p.items.some(x=>x[0]===it.cat && x[1]===it.name)){ it.src = pid; return; }
+      }
+      it.src = "custom";
+    });
+  }));
+}
+function communalDefaults(){ return COMMUNAL_DEFAULTS.map(n=>({ id:uid(), name:n, claimedBy:null })); }
+function pantryDefaults(){ return PANTRY_DEFAULTS.map(n=>({ id:uid(), name:n, claimedBy:null })); }
+
+function seedDemo(){
+  const trip = { id:uid(), name:"Camping this weekend", where:"", start:"", end:"", groups:[], communal:communalDefaults(), pantry:pantryDefaults() };
+  db.trips.push(trip);
+  addGroup(trip, "Anna & co", ["anna","kids"]);
+  save();
+  return trip;
+}
+function addGroup(trip, name, packIds){
+  const items = [];
+  const packs = allPacks();
+  packIds.forEach(pid => (packs[pid]||{items:[]}).items.forEach(it =>
+    items.push({ id:uid(), cat:it[0], name:it[1], qty:it[2]||1, status:"to_pack", src:pid })));
+  const g = { id:uid(), name, color:COLORS[trip.groups.length%COLORS.length], packs:packIds, items,
+    charge: CHARGE_DEFAULTS.map(n=>({ id:uid(), name:n, status:"to_pack" })),
+    shop: [] };
+  trip.groups.push(g);
+  return g;
+}
+function progress(g){
+  const counted = g.items.filter(i=>i.status!=="not_needed");
+  const done = counted.filter(i=>i.status==="packed").length;
+  return { done, total: counted.length, pct: counted.length ? Math.round(done/counted.length*100) : 0 };
+}
+function daysTo(dateStr){
+  if (!dateStr) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(dateStr + "T00:00:00");
+  return Math.round((d - today) / 86400000);
+}
+function countdownLabel(n){
+  if (n===null) return "";
+  if (n===0) return "It's today! 🎪";
+  if (n===1) return "Tomorrow!";
+  if (n<0) return "Happy memories";
+  return `${n} days to go`;
+}
+const initials = name => name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("");
+
+/* ============ share links ============ */
+function shareTrip(trip){
+  const usedCustom = {};
+  trip.groups.flatMap(g=>g.packs).forEach(pid=>{ if (db.packs[pid]) usedCustom[pid]=db.packs[pid]; });
+  const payload = btoa(unescape(encodeURIComponent(JSON.stringify({ t:trip, p:usedCustom }))));
+  copy(location.origin + location.pathname + "#share=" + payload, "Trip link copied — send it to the group 📮");
+}
+function sharePack(pid){
+  const p = db.packs[pid]; if (!p) return;
+  const payload = btoa(unescape(encodeURIComponent(JSON.stringify({ id:pid, pack:p }))));
+  copy(location.origin + location.pathname + "#sharepack=" + payload, `"${p.name}" link copied 🎒`);
+}
+function copy(url, msg){
+  (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject())
+    .then(()=>toast(msg)).catch(()=>prompt("Copy this link:", url));
+}
+function tryImport(){
+  let m = location.hash.match(/^#share=(.+)$/);
+  if (m){ try {
+    const { t, p } = JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+    Object.assign(db.packs, p||{});
+    const i = db.trips.findIndex(x=>x.id===t.id);
+    if (i>=0) db.trips[i]=t; else db.trips.push(t);
+    save(); history.replaceState(null,"",location.pathname);
+    toast("Trip imported ✅"); return { trip:t.id };
+  } catch(e){} }
+  m = location.hash.match(/^#sharepack=(.+)$/);
+  if (m){ try {
+    const { id, pack } = JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+    db.packs[id] = pack; save(); history.replaceState(null,"",location.pathname);
+    toast(`Pack "${pack.name}" added to your library 🎒`); return { packs:true };
+  } catch(e){} }
+  return null;
+}
+
+/* ============ weather (Open-Meteo, no key) ============ */
+const WX_ICON = c =>
+  c===0 ? "☀️" : c<=2 ? "🌤️" : c===3 ? "☁️" : c<=48 ? "🌫️" : c<=57 ? "🌦️" :
+  c<=67 ? "🌧️" : c<=77 ? "🌨️" : c<=82 ? "🌧️" : c<=86 ? "🌨️" : "⛈️";
+const wxCache = {};
+async function forecast(trip){
+  if (!trip.where || !trip.start) return { note:"Add a destination and dates in Trip settings to see the forecast." };
+  const key = trip.where + trip.start + (trip.end||"");
+  if (wxCache[key]) return wxCache[key];
+  const n = daysTo(trip.start);
+  if (n===null || n>15) return { note:"Forecast appears when the trip is about two weeks away." };
+  if (n<0 && daysTo(trip.end||trip.start)<0) return { note:"Trip's over — hope it was dry!" };
+  try {
+    const geo = await (await fetch("https://geocoding-api.open-meteo.com/v1/search?count=1&name="+encodeURIComponent(trip.where))).json();
+    const loc = geo.results && geo.results[0];
+    if (!loc) return { note:`Couldn't find "${trip.where}" — try a nearby town name.` };
+    const end = trip.end || trip.start;
+    const url = "https://api.open-meteo.com/v1/forecast?latitude="+loc.latitude+"&longitude="+loc.longitude+
+      "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto"+
+      "&start_date="+trip.start+"&end_date="+end;
+    const wx = await (await fetch(url)).json();
+    if (!wx.daily) return { note:"Forecast not available for those dates yet." };
+    const out = { place:loc.name, days: wx.daily.time.map((d,i)=>({
+      date:d, code:wx.daily.weather_code[i], hi:Math.round(wx.daily.temperature_2m_max[i]),
+      lo:Math.round(wx.daily.temperature_2m_min[i]), rain:wx.daily.precipitation_probability_max[i] })) };
+    wxCache[key] = out;
+    return out;
+  } catch(e){ return { note:"Couldn't reach the forecast service — it'll work once the site is online." }; }
+}
+
+/* ============ tiny helpers ============ */
+const app = document.getElementById("app");
+const dlg = document.getElementById("dlg");
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove("show"), 2600);
+}
+function el(html){ const d=document.createElement("div"); d.innerHTML=html.trim(); return d.firstChild; }
+function tileHandlers(tile, onOpen, onEdit){
+  tile.addEventListener("click", e=>{
+    if (e.target.closest(".pencil")){ if (onEdit) onEdit(); return; }
+    onOpen();
+  });
+  tile.addEventListener("keydown", e=>{
+    if ((e.key==="Enter"||e.key===" ") && !e.target.closest(".pencil")){ e.preventDefault(); onOpen(); }
+  });
+}
+const CONFETTI_COLORS = ["#E9A820","#1E3D32","#4A7FA5","#B4552D","#5F7A5B","#F5B93B"];
+function confetti(){
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cx = innerWidth/2, cy = innerHeight*0.32;
+  for (let i=0; i<28; i++){
+    const s = document.createElement("span");
+    s.className = "confetti";
+    s.style.background = CONFETTI_COLORS[i%CONFETTI_COLORS.length];
+    document.body.appendChild(s);
+    const ang = Math.random()*Math.PI*2, dist = 90+Math.random()*180;
+    s.animate([
+      { transform:`translate(${cx}px,${cy}px) rotate(0) scale(1)`, opacity:1 },
+      { transform:`translate(${cx+Math.cos(ang)*dist}px,${cy+Math.sin(ang)*dist+150}px) rotate(${(Math.random()*2-1)*540}deg) scale(.6)`, opacity:0 }
+    ], { duration:900+Math.random()*600, easing:"cubic-bezier(.22,1,.36,1)" }).onfinish = ()=>s.remove();
+  }
+}
+function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+const disc = (g, cls="") => `<span class="disc ${cls}" style="background:${g.color}" aria-hidden="true">${esc(initials(g.name))}</span>`;
+
+/* ============ router ============ */
+let view = { screen:"home" };
+function go(screen, a, b){ view = { screen, a, b }; render(); window.scrollTo(0,0); }
+document.querySelector("[data-nav=home]").addEventListener("click", e=>{ e.preventDefault(); go("home"); });
+document.querySelector("[data-nav=packs]").addEventListener("click", e=>{ e.preventDefault(); go("packs"); });
+
+function render(){
+  if (view.screen==="home") return renderHome();
+  if (view.screen==="trip") return renderTrip(view.a);
+  if (view.screen==="group") return renderGroup(view.a, view.b);
+  if (view.screen==="packs") return renderPacks();
+}
+
+/* ============ home ============ */
+function renderHome(){
+  app.innerHTML = `
+    <h1>Your trips</h1>
+    <p class="sub">One page per adventure. Every group gets its own list, built from ready-made packs, and everyone can see how packing's going.</p>
+    <div class="grid" id="trips"></div>`;
+  const grid = app.querySelector("#trips");
+  db.trips.forEach((t,idx)=>{
+    const n = daysTo(t.start);
+    const tile = el(`<div class="card tile" role="button" tabindex="0" aria-label="Open ${esc(t.name)}">
+      <div class="row"><span class="t-name">${esc(t.name)}</span><span class="spacer"></span>
+        ${n!==null && n>=0 ? `<span class="count-badge ${n===0?"today":""}">${countdownLabel(n)}</span>`:""}
+        <button class="pencil" aria-label="Edit ${esc(t.name)}">✎</button></div>
+      <div class="t-meta">${t.where?esc(t.where)+" · ":""}${t.groups.length} group${t.groups.length===1?"":"s"}</div>
+    </div>`);
+    tile.style.animationDelay = (idx*45)+"ms";
+    tileHandlers(tile, ()=>go("trip", t.id), ()=>tripDialog(t));
+    grid.appendChild(tile);
+  });
+  const add = el(`<button class="tile new">+ New trip</button>`);
+  add.addEventListener("click", ()=>tripDialog());
+  grid.appendChild(add);
+  if (!db.trips.length){
+    app.appendChild(el(`<div class="card empty"><span class="big">🏕️</span>No trips yet. Start one, invite the group, argue about who brings the mallet.</div>`));
+  }
+}
+
+function tripDialog(trip){
+  const isNew = !trip;
+  dlg.innerHTML = `<div class="dlg-body">
+    <h2>${isNew?"New trip":"Trip settings"}</h2>
+    <div class="field"><label for="tname">Trip name</label><input id="tname" placeholder="e.g. Lakes, August bank holiday" value="${trip?esc(trip.name):""}"></div>
+    <div class="field"><label for="twhere">Destination <span style="font-weight:400;color:var(--stone)">(town/village — for the forecast)</span></label>
+      <input id="twhere" placeholder="e.g. Keswick" value="${trip?esc(trip.where||""):""}"></div>
+    <div class="two">
+      <div class="field"><label for="tstart">First day</label><input id="tstart" type="date" value="${trip?trip.start||"":""}"></div>
+      <div class="field"><label for="tend">Last day</label><input id="tend" type="date" value="${trip?trip.end||"":""}"></div>
+    </div>
+    <div class="row"><button class="btn ghost small" id="cancel">Cancel</button><div class="spacer"></div>
+      <button class="btn" id="ok">${isNew?"Create trip":"Save"}</button></div>
+  </div>`;
+  dlg.querySelector("#cancel").addEventListener("click", ()=>dlg.close());
+  dlg.querySelector("#ok").addEventListener("click", ()=>{
+    const name = dlg.querySelector("#tname").value.trim();
+    if (!name) return toast("Give the trip a name");
+    const vals = { name, where:dlg.querySelector("#twhere").value.trim(),
+      start:dlg.querySelector("#tstart").value, end:dlg.querySelector("#tend").value };
+    if (isNew){ trip = Object.assign({ id:uid(), groups:[], communal:communalDefaults(), pantry:pantryDefaults() }, vals); db.trips.push(trip); }
+    else Object.assign(trip, vals);
+    save(); dlg.close(); go("trip", trip.id);
+  });
+  dlg.showModal();
+}
+
+/* ============ trip ============ */
+function renderTrip(tripId){
+  const trip = db.trips.find(t=>t.id===tripId); if (!trip) return go("home");
+  const n = daysTo(trip.start);
+  app.innerHTML = `
+    <nav class="crumb"><a href="#" data-nav>Trips</a><span>›</span>${esc(trip.name)}</nav>
+    <div class="row">
+      <div class="row" style="gap:.55rem"><h1>${esc(trip.name)}</h1>
+        <button class="pencil big" id="edittrip" aria-label="Edit trip name, destination and dates">✎</button></div>
+      <div class="spacer"></div>
+      ${n!==null && n>=0 ? `<span class="count-badge ${n===0?"today":""}" style="font-size:.85rem">${countdownLabel(n)}</span>`:""}
+      <button class="btn amber small" id="share">Share trip link</button>
+    </div>
+    <div class="t-meta" style="color:var(--stone); margin-top:.2rem">${trip.where?esc(trip.where):"No destination yet — tap ✎ to add one for the forecast"}${trip.start?` · ${trip.start}${trip.end?" → "+trip.end:""}`:""}</div>
+    <div id="banners"></div>
+    <div id="wx"></div>
+    <h2>Groups</h2>
+    <div class="grid" id="groups"></div>
+    <h2>Communal gear — who's bringing what?</h2>
+    <p class="hint">One of each is plenty. Claim an item so the trip doesn't end up with four ice boxes and no gas.</p>
+    <div class="card" style="padding:.4rem 1rem; margin-top:.6rem"><ul class="items" id="communal"></ul></div>
+    <div class="add-row" id="commadd"></div>
+    <h2>Communal pantry — shared staples 🫒</h2>
+    <p class="hint">Nobody needs six bottles of olive oil. Claim a staple and bring enough for everyone — decant into small containers where you can. Snacks stay personal; we know how that goes.</p>
+    <div class="card" style="padding:.4rem 1rem; margin-top:.6rem"><ul class="items" id="pantry"></ul></div>
+    <div class="add-row" id="pantryadd"></div>
+    <p class="hint" style="margin-top:1.2rem">Sharing works by link: tap <strong>Share trip link</strong> and send it in the group chat. Whoever opens it gets the latest state — re-share after big updates.</p>`;
+  app.querySelector("[data-nav]").addEventListener("click", e=>{e.preventDefault(); go("home");});
+  app.querySelector("#share").addEventListener("click", ()=>shareTrip(trip));
+  app.querySelector("#edittrip").addEventListener("click", ()=>tripDialog(trip));
+
+  /* banners: tomorrow reminder + rain nudge (async) */
+  const banners = app.querySelector("#banners");
+  if (n===1 || n===0){
+    const parts = trip.groups.map(g=>{
+      const tmrw = g.items.filter(i=>i.status==="tomorrow").length;
+      const buy = g.items.filter(i=>i.status==="buy").length;
+      const bits = [];
+      if (tmrw) bits.push(`${tmrw} tagged Tomorrow`);
+      if (buy) bits.push(`${buy} still to buy`);
+      return bits.length ? `<strong>${esc(g.name)}</strong>: ${bits.join(", ")}` : null;
+    }).filter(Boolean);
+    banners.appendChild(el(`<div class="banner tmrw">⏰ <strong>${n===0?"It's trip day!":"Trip starts tomorrow!"}</strong> ${parts.length?parts.join(" · "):"Nothing outstanding — smug packing achieved."}</div>`));
+  }
+
+  /* weather strip */
+  const wxBox = app.querySelector("#wx");
+  wxBox.innerHTML = `<div class="wx-note">Checking the forecast…</div>`;
+  forecast(trip).then(f=>{
+    if (view.screen!=="trip" || view.a!==tripId) return;
+    if (f.note){ wxBox.innerHTML = `<div class="wx-note">${esc(f.note)}</div>`; return; }
+    wxBox.innerHTML = `<div class="wx">${f.days.map((d,i)=>{
+      const day = new Date(d.date+"T00:00:00").toLocaleDateString(undefined,{weekday:"short"});
+      return `<div class="wx-day" style="animation-delay:${i*50}ms"><div class="d">${day}</div><div class="i">${WX_ICON(d.code)}</div>
+        <div class="t">${d.hi}° / ${d.lo}°</div><div class="p">${d.rain!=null?d.rain+"% rain":""}</div></div>`;
+    }).join("")}</div><div class="wx-note">Forecast for ${esc(f.place)}, ${esc(trip.start)} → ${esc(trip.end||trip.start)}</div>`;
+    const wet = f.days.some(d=>(d.rain??0)>=50 || d.code>=61);
+    const anyoneMissingRain = trip.groups.some(g=>!g.packs.includes("rain"));
+    if (wet && anyoneMissingRain && trip.groups.length){
+      const b = el(`<div class="banner rain">🌧️ <strong>Rain on the radar.</strong> Some groups haven't added the Wet weather pack.<br>
+        <button class="btn small" style="background:var(--sky)">Add Wet weather pack to all groups</button></div>`);
+      b.querySelector("button").addEventListener("click", ()=>{
+        trip.groups.forEach(g=>{
+          if (g.packs.includes("rain")) return;
+          g.packs.push("rain");
+          BUILTIN.rain.items.forEach(it=>g.items.push({id:uid(), cat:it[0], name:it[1], qty:it[2]||1, status:"to_pack", src:"rain"}));
+        });
+        save(); render(); toast("Wet weather pack added to every group ☔");
+      });
+      banners.appendChild(b);
+    }
+  });
+
+  /* groups */
+  const grid = app.querySelector("#groups");
+  trip.groups.forEach((g,idx)=>{
+    const p = progress(g);
+    const buys = g.items.filter(i=>i.status==="buy").length;
+    const tile = el(`<div class="card tile" role="button" tabindex="0" aria-label="Open ${esc(g.name)}'s list">
+      <div class="row">${disc(g)}<span class="t-name">${esc(g.name)}</span><span class="spacer"></span>
+        <button class="pencil" aria-label="Rename ${esc(g.name)}">✎</button></div>
+      <div class="progress ${p.pct===100?"done":""}"><span style="width:${p.pct}%"></span></div>
+      <div class="t-meta mono">${p.done}/${p.total} packed${p.pct===100?" — ready! 🎉":""}${buys?` · ${buys} to buy`:""}</div>
+    </div>`);
+    tile.style.animationDelay = (idx*45)+"ms";
+    tileHandlers(tile, ()=>go("group", trip.id, g.id), ()=>renameGroupDialog(trip, g));
+    grid.appendChild(tile);
+  });
+  const add = el(`<button class="tile new">+ Add your group</button>`);
+  add.addEventListener("click", ()=>groupDialog(trip));
+  grid.appendChild(add);
+
+  /* communal gear + pantry: same claim mechanics, two lists */
+  trip.communal = trip.communal || communalDefaults();
+  trip.pantry = trip.pantry || pantryDefaults();
+  const claimList = (arr, ulSel, addSel, placeholder) => {
+    const ul = app.querySelector(ulSel);
+    arr.forEach(item=>{
+      const claimer = trip.groups.find(g=>g.id===item.claimedBy);
+      const li = el(`<li class="item">
+        <span class="name">${esc(item.name)}</span>
+        ${claimer ? `<span class="claimed-by">${disc(claimer)}${esc(claimer.name)}</span>` : ""}
+        <select class="claim" aria-label="Who's bringing ${esc(item.name)}?">
+          <option value="">${claimer?"Change…":"Claim it…"}</option>
+          ${trip.groups.map(g=>`<option value="${g.id}" ${g.id===item.claimedBy?"selected":""}>${esc(g.name)}</option>`).join("")}
+          ${claimer?`<option value="__un">Unclaim</option>`:""}
+        </select>
+        <button class="del" aria-label="Remove ${esc(item.name)}">✕</button></li>`);
+      li.querySelector(".claim").addEventListener("change", e=>{
+        item.claimedBy = e.target.value==="__un" ? null : (e.target.value || item.claimedBy);
+        save(); render();
+      });
+      li.querySelector(".del").addEventListener("click", ()=>{
+        arr.splice(arr.indexOf(item),1); save(); render();
+      });
+      ul.appendChild(li);
+    });
+    const addC = app.querySelector(addSel);
+    addC.innerHTML = `<input placeholder="${placeholder}"><button class="btn small">Add</button>`;
+    const doAdd = ()=>{ const v=addC.querySelector("input").value.trim(); if(!v) return;
+      arr.push({id:uid(), name:v, claimedBy:null}); save(); render(); };
+    addC.querySelector("button").addEventListener("click", doAdd);
+    addC.querySelector("input").addEventListener("keydown", e=>{ if(e.key==="Enter") doAdd(); });
+  };
+  claimList(trip.communal, "#communal", "#commadd", "Add communal gear… (projector? bunting?)");
+  claimList(trip.pantry, "#pantry", "#pantryadd", "Add a shared staple… (marmite? hot sauce?)");
+}
+
+/* ============ join-group dialog ============ */
+function groupDialog(trip){
+  const packs = allPacks();
+  dlg.innerHTML = `<div class="dlg-body">
+    <h2>Join ${esc(trip.name)}</h2>
+    <div class="field"><label for="gname">Your group's nickname <span style="font-weight:400;color:var(--stone)">(forenames or whatever you like)</span></label>
+      <input id="gname" placeholder="e.g. Sam & Priya, or The Late Arrivals"></div>
+    <div class="field"><label>Start from packs</label>
+      <div class="packs">${Object.entries(packs).map(([id,p])=>
+        `<label class="pack ${p.special?"special":""}"><input type="checkbox" value="${id}" ${id==="anna"?"checked":""}>
+         <span><span class="p-name">${esc(p.name)}</span><br><span class="p-count">${p.items.length} items · by ${esc(p.creator)}</span></span></label>`).join("")}
+      </div></div>
+    <div class="row"><button class="btn ghost small" id="cancel">Cancel</button>
+      <div class="spacer"></div><button class="btn" id="create">Create list</button></div>
+  </div>`;
+  dlg.querySelector("#cancel").addEventListener("click", ()=>dlg.close());
+  dlg.querySelector("#create").addEventListener("click", ()=>{
+    const name = dlg.querySelector("#gname").value.trim();
+    if (!name) return toast("Give your group a nickname first");
+    if (trip.groups.some(g=>g.name.toLowerCase()===name.toLowerCase())) return toast("That nickname's taken on this trip");
+    const packIds = [...dlg.querySelectorAll(".packs input:checked")].map(i=>i.value);
+    const g = addGroup(trip, name, packIds);
+    save(); dlg.close(); go("group", trip.id, g.id);
+  });
+  dlg.showModal();
+}
+
+function renameGroupDialog(trip, g){
+  dlg.innerHTML = `<div class="dlg-body">
+    <h2>Rename group</h2>
+    <div class="field"><label for="rname">Group nickname</label><input id="rname" value="${esc(g.name)}"></div>
+    <div class="row"><button class="btn ghost small" id="cancel">Cancel</button><div class="spacer"></div>
+      <button class="btn" id="ok">Save</button></div>
+  </div>`;
+  dlg.querySelector("#cancel").addEventListener("click", ()=>dlg.close());
+  dlg.querySelector("#ok").addEventListener("click", ()=>{
+    const name = dlg.querySelector("#rname").value.trim();
+    if (!name) return toast("The group needs a nickname");
+    if (trip.groups.some(x=>x!==g && x.name.toLowerCase()===name.toLowerCase())) return toast("That nickname's taken on this trip");
+    g.name = name; save(); dlg.close(); render();
+  });
+  dlg.showModal();
+}
+
+function removePack(trip, g, pid){
+  const packs = allPacks();
+  const name = (packs[pid]||{}).name || "this pack";
+  const fromPack = g.items.filter(i=>i.src===pid);
+  const untouched = fromPack.filter(i=>i.status==="to_pack" && (i.qty||1)===1);
+  const kept = fromPack.length - untouched.length;
+  const msg = untouched.length
+    ? `Remove ${untouched.length} untouched item${untouched.length===1?"":"s"} from "${name}"?`+
+      (kept ? `\n\nThe ${kept} you've already worked on will stay.` : "")
+    : `No untouched items left from "${name}" — everything's been worked on, so the items will stay. Remove the pack label anyway?`;
+  if (!confirm(msg)) return;
+  untouched.forEach(i=>g.items.splice(g.items.indexOf(i),1));
+  g.packs = g.packs.filter(x=>x!==pid);
+  save(); render(); toast(`"${name}" removed`);
+}
+
+function addPackDialog(g){
+  const packs = allPacks();
+  const avail = Object.entries(packs).filter(([id])=>!g.packs.includes(id));
+  if (!avail.length){ toast("Every pack's already on this list"); return; }
+  dlg.innerHTML = `<div class="dlg-body">
+    <h2>Add packs</h2>
+    <div class="field"><div class="packs">${avail.map(([id,p])=>
+      `<label class="pack ${p.special?"special":""}"><input type="checkbox" value="${id}">
+       <span><span class="p-name">${esc(p.name)}</span><br><span class="p-count">${p.items.length} items · by ${esc(p.creator)}</span></span></label>`).join("")}
+    </div></div>
+    <div class="row"><button class="btn ghost small" id="cancel">Cancel</button><div class="spacer"></div>
+      <button class="btn" id="ok">Add selected</button></div>
+  </div>`;
+  dlg.querySelector("#cancel").addEventListener("click", ()=>dlg.close());
+  dlg.querySelector("#ok").addEventListener("click", ()=>{
+    const pids = [...dlg.querySelectorAll(".packs input:checked")].map(i=>i.value);
+    if (!pids.length) return toast("Tick at least one pack");
+    pids.forEach(pid=>{
+      g.packs.push(pid);
+      packs[pid].items.forEach(it=>g.items.push({ id:uid(), cat:it[0], name:it[1], qty:it[2]||1, status:"to_pack", src:pid }));
+    });
+    save(); dlg.close(); render(); toast(`${pids.length} pack${pids.length===1?"":"s"} added 🎒`);
+  });
+  dlg.showModal();
+}
+
+/* ============ group checklist ============ */
+function renderGroup(tripId, groupId){
+  const trip = db.trips.find(t=>t.id===tripId); if (!trip) return go("home");
+  const g = trip.groups.find(x=>x.id===groupId); if (!g) return go("trip", tripId);
+  const p = progress(g);
+  const tab = view.tab || "pack";
+  const autoBuys = g.items.filter(i=>i.status==="buy");
+  app.innerHTML = `
+    <nav class="crumb"><a href="#" data-nav="h">Trips</a><span>›</span><a href="#" data-nav="t">${esc(trip.name)}</a><span>›</span>${esc(g.name)}</nav>
+    <div class="row">${disc(g)}
+      <div><div class="row" style="gap:.5rem"><h1>${esc(g.name)}</h1>
+        <button class="pencil big" id="editgroup" aria-label="Rename ${esc(g.name)}">✎</button></div>
+      <div class="mono" style="color:var(--stone)">${p.done}/${p.total} packed ${p.pct===100?"— ready to roll 🎉":""}</div></div>
+      <div class="spacer"></div>
+      <button class="btn ghost small" id="saveaspack">Save as pack</button>
+      <button class="btn amber small" id="share">Share trip link</button></div>
+    <div class="progress ${p.pct===100?"done":""}" style="margin-top:.7rem"><span style="width:${p.pct}%"></span></div>
+    <div class="packrow" id="packrow"></div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-t="pack" aria-selected="${tab==="pack"}">Pack list</button>
+      <button class="tab" role="tab" data-t="charge" aria-selected="${tab==="charge"}">To charge 🔌</button>
+      <button class="tab" role="tab" data-t="shop" aria-selected="${tab==="shop"}">Shopping 🛒${autoBuys.length+g.shop.length?` (${autoBuys.length+g.shop.length})`:""}</button>
+    </div>
+    ${store.get("annas-hint") ? "" : `<p class="hint">Tap a tag to cycle its status — anything marked <strong>Buy</strong> hops to Shopping by itself. Tap an item's name for quantity and remove.</p>`}
+    <div id="body"></div>`;
+  app.querySelector("[data-nav=h]").addEventListener("click",e=>{e.preventDefault();go("home");});
+  app.querySelector("[data-nav=t]").addEventListener("click",e=>{e.preventDefault();go("trip",tripId);});
+  app.querySelector("#share").addEventListener("click", ()=>shareTrip(trip));
+  app.querySelector("#saveaspack").addEventListener("click", ()=>saveAsPackDialog(g));
+  app.querySelector("#editgroup").addEventListener("click", ()=>renameGroupDialog(trip, g));
+  app.querySelectorAll(".tab").forEach(b=>b.addEventListener("click", ()=>{ view.tab=b.dataset.t; render(); }));
+
+  /* active packs: removable chips + add */
+  const packrow = app.querySelector("#packrow");
+  const packsAll = allPacks();
+  g.packs.filter(pid=>packsAll[pid]).forEach(pid=>{
+    const chip = el(`<span class="pchip">${esc(packsAll[pid].name)}
+      <button aria-label="Remove pack ${esc(packsAll[pid].name)}">✕</button></span>`);
+    chip.querySelector("button").addEventListener("click", ()=>removePack(trip, g, pid));
+    packrow.appendChild(chip);
+  });
+  const addP = el(`<button class="pchip addp">+ Add pack</button>`);
+  addP.addEventListener("click", ()=>addPackDialog(g));
+  packrow.appendChild(addP);
+
+  const body = app.querySelector("#body");
+
+  const rerender = ()=>{ save(); render(); };
+  const itemRow = (item, list, removable=true) => {
+    const q = item.qty || 1;
+    const li = el(`<li class="item s-${item.status}">
+      <button class="chip s-${item.status}" aria-label="${esc(item.name)}: ${STATE_LABEL[item.status]}. Tap to change.">${STATE_LABEL[item.status]}</button>
+      <span class="name">${esc(item.name)}</span>
+      <span class="qty ${q>1?"multi":""}">
+        <button class="q-m" aria-label="Fewer ${esc(item.name)}">−</button><b>×${q}</b>
+        <button class="q-p" aria-label="More ${esc(item.name)}">+</button></span>
+      ${removable?`<button class="del" aria-label="Remove ${esc(item.name)}">✕</button>`:""}
+    </li>`);
+    li.querySelector(".q-m").addEventListener("click", ()=>{ item.qty = Math.max(1, q-1); rerender(); });
+    li.querySelector(".q-p").addEventListener("click", ()=>{ item.qty = q+1; rerender(); });
+    li.querySelector(".name").addEventListener("click", ()=>li.classList.toggle("open"));
+    li.querySelector(".chip").addEventListener("click", ()=>{
+      const before = list===g.items ? progress(g).pct : null;
+      item.status = STATES[(STATES.indexOf(item.status)+1)%STATES.length];
+      if (!store.get("annas-hint")) store.set("annas-hint","1");
+      if (list===g.items && before!==null && before<100 && progress(g).pct===100){ confetti(); toast("All packed — ready to roll! 🎉"); }
+      rerender();
+    });
+    const d = li.querySelector(".del");
+    if (d) d.addEventListener("click", ()=>{ list.splice(list.indexOf(item),1); rerender(); });
+    return li;
+  };
+  const addRow = (placeholder, onAdd, cats) => {
+    const r = el(`<div class="add-row">
+      ${cats?`<select id="ncat">${cats.map(c=>`<option>${esc(c)}</option>`).join("")}<option>Other</option></select>`:""}
+      <input id="nname" placeholder="${placeholder}">
+      <button class="btn small">Add</button></div>`);
+    const doAdd = ()=>{ const v=r.querySelector("#nname").value.trim(); if(!v) return;
+      onAdd(v, cats ? r.querySelector("#ncat").value : null); rerender(); };
+    r.querySelector("button").addEventListener("click", doAdd);
+    r.querySelector("#nname").addEventListener("keydown", e=>{ if(e.key==="Enter") doAdd(); });
+    return r;
+  };
+
+  if (tab==="pack"){
+    const cats = [...new Set(g.items.map(i=>i.cat))];
+    if (!g.items.length) body.appendChild(el(`<div class="card empty"><span class="big">🎒</span>Nothing here yet — add your first item below.</div>`));
+    cats.forEach(cat=>{
+      const items = g.items.filter(i=>i.cat===cat);
+      const done = items.filter(i=>i.status==="packed").length;
+      const sec = el(`<section class="cat"><div class="cat-head"><h3>${esc(cat)}</h3><span class="mono">${done}/${items.length}</span></div><ul class="items"></ul></section>`);
+      const ul = sec.querySelector("ul");
+      items.forEach(i=>ul.appendChild(itemRow(i, g.items)));
+      body.appendChild(sec);
+    });
+    body.appendChild(addRow("Add your own item…", (v,cat)=>{
+      g.items.push({ id:uid(), cat:cat||"Other", name:v, status:"to_pack", src:"custom" });
+    }, cats.length?cats:["Camping"]));
+  }
+  if (tab==="charge"){
+    const ul = el(`<ul class="items"></ul>`);
+    g.charge.forEach(i=>ul.appendChild(itemRow(i, g.charge)));
+    body.appendChild(ul);
+    body.appendChild(addRow("Add something to charge…", v=>g.charge.push({id:uid(), name:v, status:"to_pack"})));
+  }
+  if (tab==="shop"){
+    if (autoBuys.length){
+      const sec = el(`<section class="cat"><div class="cat-head"><h3>From your pack list</h3><span class="mono">${autoBuys.length}</span></div><ul class="items"></ul></section>`);
+      const ul = sec.querySelector("ul");
+      autoBuys.forEach(i=>ul.appendChild(itemRow(i, g.items, false)));
+      body.appendChild(sec);
+    }
+    const sec2 = el(`<section class="cat"><div class="cat-head"><h3>Food & extras</h3><span class="mono">${g.shop.length}</span></div><ul class="items"></ul></section>`);
+    const ul2 = sec2.querySelector("ul");
+    g.shop.forEach(i=>ul2.appendChild(itemRow(i, g.shop)));
+    body.appendChild(sec2);
+    body.appendChild(addRow("Add to shopping… (marshmallows?)", v=>g.shop.push({id:uid(), name:v, status:"to_pack"})));
+  }
+}
+
+/* ============ custom packs ============ */
+function saveAsPackDialog(g){
+  dlg.innerHTML = `<div class="dlg-body">
+    <h2>Save this list as a pack</h2>
+    <p class="hint" style="margin:0 0 .9rem">Your current items (minus their statuses) become a reusable pack anyone can add — like "Anna's Camping Essentials", but yours.</p>
+    <div class="field"><label for="pname">Pack name</label><input id="pname" placeholder="e.g. Simon's camping list"></div>
+    <div class="field"><label for="pcreator">Your name <span style="font-weight:400;color:var(--stone)">(shown as the pack's creator — only you should edit it)</span></label>
+      <input id="pcreator" placeholder="e.g. Simon"></div>
+    <div class="row"><button class="btn ghost small" id="cancel">Cancel</button><div class="spacer"></div>
+      <button class="btn" id="ok">Save pack</button></div>
+  </div>`;
+  dlg.querySelector("#cancel").addEventListener("click", ()=>dlg.close());
+  dlg.querySelector("#ok").addEventListener("click", ()=>{
+    const name = dlg.querySelector("#pname").value.trim();
+    const creator = dlg.querySelector("#pcreator").value.trim();
+    if (!name || !creator) return toast("Pack name and your name, please");
+    const id = "u_"+uid();
+    db.packs[id] = { name, creator, items: g.items.map(i=>[i.cat, i.name, i.qty||1]) };
+    save(); dlg.close(); toast(`Saved "${name}" to the pack library 🎒`);
+  });
+  dlg.showModal();
+}
+
+function trustCheck(p){
+  return confirm(`"${p.name}" belongs to ${p.creator}. Only ${p.creator} should change it — is that you?\n\n(We run on trust here, like a good campsite.)`);
+}
+
+function renderPacks(){
+  const custom = Object.entries(db.packs);
+  app.innerHTML = `
+    <nav class="crumb"><a href="#" data-nav>Trips</a><span>›</span>Pack library</nav>
+    <h1>Pack library</h1>
+    <p class="sub">Built-in packs plus everything the group has saved. Add packs when you join a trip; save your own from any group list with <strong>Save as pack</strong>.</p>
+    <h2>Built-in</h2><div class="grid" id="builtin"></div>
+    <h2>Made by the group</h2><div class="grid" id="custom"></div>`;
+  app.querySelector("[data-nav]").addEventListener("click", e=>{e.preventDefault(); go("home");});
+  const b = app.querySelector("#builtin");
+  Object.values(BUILTIN).forEach(p=>{
+    b.appendChild(el(`<div class="card tile ${p.special?"special":""}">
+      <span class="t-name">${esc(p.name)}${p.special?" ⭐":""}</span>
+      <span class="t-meta">${p.items.length} items · by ${esc(p.creator)}</span></div>`));
+  });
+  const c = app.querySelector("#custom");
+  if (!custom.length) c.appendChild(el(`<div class="card empty" style="grid-column:1/-1"><span class="big">🎒</span>Nothing yet. Open any group list and tap <strong>Save as pack</strong>.</div>`));
+  custom.forEach(([id,p])=>{
+    const tile = el(`<div class="card tile">
+      <span class="t-name">${esc(p.name)}</span>
+      <span class="t-meta">${p.items.length} items · by ${esc(p.creator)}</span>
+      <div class="row">
+        <button class="btn small ghost" data-e>Edit</button>
+        <button class="btn small amber" data-s>Share</button>
+        <button class="del" data-d aria-label="Delete ${esc(p.name)}">✕</button>
+      </div></div>`);
+    tile.querySelector("[data-e]").addEventListener("click", ()=>{ if (trustCheck(p)) editPackDialog(id); });
+    tile.querySelector("[data-s]").addEventListener("click", ()=>sharePack(id));
+    tile.querySelector("[data-d]").addEventListener("click", ()=>{
+      if (trustCheck(p) && confirm(`Delete "${p.name}" for good?`)){ delete db.packs[id]; save(); render(); }
+    });
+    c.appendChild(tile);
+  });
+}
+
+function editPackDialog(id){
+  const p = db.packs[id];
+  const lines = p.items.map(it=>`${it[0]} | ${it[1]}${(it[2]||1)>1?` | ${it[2]}`:""}`).join("\n");
+  dlg.innerHTML = `<div class="dlg-body">
+    <h2>Edit "${esc(p.name)}"</h2>
+    <div class="field"><label for="ename">Pack name</label><input id="ename" value="${esc(p.name)}"></div>
+    <div class="field"><label for="eitems">Items — one per line, as <span class="mono">Category | Item</span> (optional <span class="mono">| quantity</span>)</label>
+      <textarea id="eitems">${esc(lines)}</textarea></div>
+    <div class="row"><button class="btn ghost small" id="cancel">Cancel</button><div class="spacer"></div>
+      <button class="btn" id="ok">Save changes</button></div>
+  </div>`;
+  dlg.querySelector("#cancel").addEventListener("click", ()=>dlg.close());
+  dlg.querySelector("#ok").addEventListener("click", ()=>{
+    const name = dlg.querySelector("#ename").value.trim();
+    if (!name) return toast("The pack needs a name");
+    const items = dlg.querySelector("#eitems").value.split("\n").map(l=>l.trim()).filter(Boolean).map(l=>{
+      const parts = l.split("|").map(s=>s.trim());
+      if (parts.length===1) return ["Other", parts[0], 1];
+      const qty = parts.length>2 ? Math.max(1, parseInt(parts[2],10)||1) : 1;
+      return [parts[0]||"Other", parts[1], qty];
+    }).filter(it=>it[1]);
+    if (!items.length) return toast("Add at least one item");
+    p.name = name; p.items = items;
+    save(); dlg.close(); render(); toast("Pack updated ✅");
+  });
+  dlg.showModal();
+}
+
+/* ============ theme: aurora by day, night camp after dark ============ */
+const THEME_KEY = "annas-theme";
+const sysDark = matchMedia("(prefers-color-scheme: dark)");
+function applyTheme(){
+  const pref = store.get(THEME_KEY);
+  const dark = pref ? pref==="dark" : sysDark.matches;
+  document.documentElement.classList.toggle("dark", dark);
+  const b = document.getElementById("themebtn");
+  if (b) b.textContent = pref===null ? "◐" : (dark ? "☾" : "☀");
+}
+sysDark.addEventListener("change", applyTheme);
+document.getElementById("themebtn").addEventListener("click", ()=>{
+  const cur = store.get(THEME_KEY);
+  const next = cur===null ? "dark" : cur==="dark" ? "light" : null;
+  store.set(THEME_KEY, next);
+  if (next===null){ try{ localStorage.removeItem(THEME_KEY); }catch(e){ delete mem[THEME_KEY]; } }
+  applyTheme();
+  toast(next===null ? "Matching your device 📱" : next==="dark" ? "Night camp 🌙" : "Daylight ☀️");
+});
+applyTheme();
+
+/* ============ boot ============ */
+const imported = tryImport();
+retroTagSources(db);
+if (!db.trips.length) seedDemo();
+save();
+if (imported && imported.trip) go("trip", imported.trip);
+else if (imported && imported.packs) go("packs");
+else render();
+
+</script>
+</body>
+</html>
